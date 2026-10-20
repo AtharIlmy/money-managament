@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth, getApiUrl, parseApiResponse } from '../context/AuthContext';
 import Logo from '../components/Logo';
 import Icon from '../components/Icon';
 
@@ -50,12 +50,12 @@ export default function Login({ defaultShowForgot = false }) {
 
     setForgotLoading(true);
     try {
-      const res = await fetch('/api/auth/verify-email', {
+      const res = await fetch(getApiUrl('/api/auth/verify-email'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: forgotEmail.trim() }),
       });
-      const data = await res.json();
+      const data = await parseApiResponse(res, 'Gagal memverifikasi email');
       if (res.ok) {
         setForgotUserName(data.name || '');
         setForgotStep(2);
@@ -84,7 +84,7 @@ export default function Login({ defaultShowForgot = false }) {
 
     setForgotLoading(true);
     try {
-      const res = await fetch('/api/auth/reset-password', {
+      const res = await fetch(getApiUrl('/api/auth/reset-password'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -92,7 +92,7 @@ export default function Login({ defaultShowForgot = false }) {
           newPassword,
         }),
       });
-      const data = await res.json();
+      const data = await parseApiResponse(res, 'Gagal mereset kata sandi');
       if (res.ok) {
         setForgotStep(3);
       } else {

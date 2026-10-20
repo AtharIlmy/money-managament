@@ -3,6 +3,8 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { PrivacyProvider } from './context/PrivacyContext';
+import { PWAProvider } from './context/PWAContext';
+import PWAInstallModal from './components/PWAInstallModal';
 import Layout from './components/Layout';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -23,7 +25,9 @@ export default function App() {
       <ThemeProvider>
         <PrivacyProvider>
           <AuthProvider>
-          <Routes>
+            <PWAProvider>
+              <PWAInstallModal />
+              <Routes>
             {/* Public Auth Routes */}
             <Route path="/masuk" element={<Login />} />
             <Route path="/lupa-sandi" element={<Login defaultShowForgot={true} />} />
@@ -47,6 +51,7 @@ export default function App() {
             {/* Fallback */}
             <Route path="*" element={<Navigate to="/dasbor" replace />} />
           </Routes>
+            </PWAProvider>
           </AuthProvider>
         </PrivacyProvider>
       </ThemeProvider>

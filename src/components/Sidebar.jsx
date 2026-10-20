@@ -1,6 +1,7 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { usePWA } from '../context/PWAContext';
 import Icon from './Icon';
 import Logo from './Logo';
 
@@ -15,6 +16,7 @@ const NAV_ITEMS = [
 
 export default function Sidebar({ isOpen = false, onClose }) {
   const { user, logout } = useAuth();
+  const { openInstallModal, isInstalled } = usePWA();
   const navigate = useNavigate();
 
   const handleLogout = (e) => {
@@ -233,6 +235,48 @@ export default function Sidebar({ isOpen = false, onClose }) {
             </>
           )}
         </NavLink>
+        <button
+          type="button"
+          onClick={() => {
+            onClose?.();
+            openInstallModal();
+          }}
+          id="sidebar-download-app-btn"
+          className="nav-item"
+          style={{
+            width: '100%',
+            padding: '7px 12px',
+            fontSize: 13,
+            marginBottom: 2,
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            textAlign: 'left',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            color: 'var(--text-secondary)',
+            borderRadius: 'var(--radius-sm, 8px)',
+            transition: 'background 0.15s, color 0.15s',
+          }}
+          title="Download & Pasang Aplikasi ke Perangkat"
+        >
+          <Icon name="download" size={17} style={{ color: '#0284C7' }} />
+          <span>{isInstalled ? 'Aplikasi Terpasang' : 'Download Aplikasi'}</span>
+          <span
+            style={{
+              marginLeft: 'auto',
+              fontSize: 10,
+              fontWeight: 700,
+              padding: '2px 6px',
+              borderRadius: 6,
+              background: isInstalled ? 'rgba(74, 227, 181, 0.18)' : 'rgba(82, 181, 253, 0.18)',
+              color: isInstalled ? '#059669' : '#0284C7',
+            }}
+          >
+            {isInstalled ? 'Aktif' : 'App'}
+          </span>
+        </button>
       </div>
 
       {/* User Footer */}

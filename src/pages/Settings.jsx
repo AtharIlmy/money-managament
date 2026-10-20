@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { usePWA } from '../context/PWAContext';
 import Icon from '../components/Icon';
 import NotificationButton from '../components/NotificationButton';
 import {
@@ -11,6 +12,7 @@ import {
 
 export default function Settings() {
   const { user, updateUser, authFetch } = useAuth();
+  const { openInstallModal, isInstalled, isIOS, deferredPrompt, installApp } = usePWA();
   const [activeTab, setActiveTab] = useState('profile');
 
   // Profile form state
@@ -460,6 +462,7 @@ export default function Settings() {
     { id: 'security', label: 'Keamanan & Sandi', icon: 'lock' },
     { id: 'notifications', label: 'Notifikasi', icon: 'notifications' },
     { id: 'data', label: 'Cadangan & Data', icon: 'cloud_download' },
+    { id: 'app', label: 'Unduh Aplikasi', icon: 'smartphone' },
   ];
 
   return (
@@ -1617,6 +1620,212 @@ export default function Settings() {
                       <div style={{ padding: '12px 14px', background: '#FFFFFF', borderRadius: 10, border: '1px solid var(--border-light)' }}>
                         <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600 }}>Protokol Enkripsi</div>
                         <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--primary)', marginTop: 2 }}>JWT + Bcrypt</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* TAB 6: UNDUH APLIKASI (PWA) */}
+            {activeTab === 'app' && (
+              <div className="card" style={{ padding: '28px 32px', borderRadius: 16 }}>
+                <div style={{ borderBottom: '1px solid var(--border-light)', paddingBottom: 16, marginBottom: 24 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+                    <div>
+                      <h2 style={{ fontSize: 17, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.3px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <Icon name="smartphone" size={22} style={{ color: 'var(--primary)' }} />
+                        <span>Unduh Aplikasi (PWA)</span>
+                      </h2>
+                      <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 4 }}>
+                        Gunakan Money Management layaknya aplikasi bawaan ponsel (Android &amp; iOS) atau software desktop tanpa perlu lewat toko aplikasi.
+                      </p>
+                    </div>
+                    <span
+                      style={{
+                        padding: '4px 12px',
+                        borderRadius: 20,
+                        fontSize: 12,
+                        fontWeight: 700,
+                        background: isInstalled ? 'rgba(74, 227, 181, 0.15)' : 'rgba(82, 181, 253, 0.15)',
+                        color: isInstalled ? '#059669' : '#0284C7',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6,
+                      }}
+                    >
+                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: isInstalled ? '#059669' : '#0284C7' }} />
+                      {isInstalled ? 'Aplikasi Terpasang di Perangkat Ini' : 'Dapat Diunduh Langsung'}
+                    </span>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+                  {/* Hero App Banner */}
+                  <div
+                    style={{
+                      background: 'linear-gradient(135deg, #0B1728 0%, #162B48 100%)',
+                      borderRadius: 16,
+                      padding: '24px 28px',
+                      color: '#FFFFFF',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      flexWrap: 'wrap',
+                      gap: 20,
+                      boxShadow: '0 8px 24px rgba(11,23,40,0.2)',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 16, maxWidth: 500 }}>
+                      <img
+                        src="/icon-192.png"
+                        alt="Money Management App Icon"
+                        style={{
+                          width: 64,
+                          height: 64,
+                          borderRadius: 16,
+                          boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
+                          border: '2px solid rgba(255,255,255,0.15)',
+                        }}
+                      />
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span style={{ fontSize: 11, fontWeight: 700, color: '#4AE3B5', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
+                            Progressive Web App
+                          </span>
+                          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)' }}>• Bebas Iklan</span>
+                        </div>
+                        <div style={{ fontSize: 18, fontWeight: 800, marginTop: 2 }}>Money Management Mobile &amp; Desktop</div>
+                        <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.75)', marginTop: 4, lineHeight: 1.4 }}>
+                          Buka seketika dari beranda ponsel, nikmati tampilan layar penuh, dan terima pengingat catat keuangan setiap hari.
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      {isInstalled ? (
+                        <div
+                          style={{
+                            background: 'rgba(74, 227, 181, 0.18)',
+                            border: '1px solid rgba(74, 227, 181, 0.4)',
+                            color: '#4AE3B5',
+                            padding: '10px 18px',
+                            borderRadius: 12,
+                            fontWeight: 700,
+                            fontSize: 13,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 8,
+                          }}
+                        >
+                          <Icon name="check_circle" size={18} />
+                          <span>Sudah Terpasang</span>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={installApp}
+                          style={{
+                            padding: '12px 22px',
+                            borderRadius: 12,
+                            background: 'linear-gradient(135deg, #4AE3B5 0%, #34D399 100%)',
+                            color: '#0B1728',
+                            border: 'none',
+                            fontWeight: 800,
+                            fontSize: 13.5,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 10,
+                            cursor: 'pointer',
+                            boxShadow: '0 4px 14px rgba(74, 227, 181, 0.35)',
+                            transition: 'all 0.2s',
+                          }}
+                        >
+                          <Icon name="download" size={18} />
+                          <span>Unduh &amp; Pasang Sekarang</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Keunggulan Fitur App */}
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 12 }}>
+                      Keunggulan Memasang Sebagai Aplikasi:
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
+                      <div style={{ padding: '16px', background: 'var(--bg-secondary, #FAFBFD)', borderRadius: 14, border: '1px solid var(--border-light)' }}>
+                        <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(74,227,181,0.15)', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
+                          <Icon name="speed" size={20} />
+                        </div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>Super Cepat &amp; Hemat Kuota</div>
+                        <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4, lineHeight: 1.4 }}>
+                          Hanya ~2 MB, aset antarmuka langsung tersimpan di cache lokal ponsel Anda.
+                        </div>
+                      </div>
+
+                      <div style={{ padding: '16px', background: 'var(--bg-secondary, #FAFBFD)', borderRadius: 14, border: '1px solid var(--border-light)' }}>
+                        <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(82,181,253,0.15)', color: '#0284C7', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
+                          <Icon name="fullscreen" size={20} />
+                        </div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>Layar Penuh (Standalone)</div>
+                        <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4, lineHeight: 1.4 }}>
+                          Tanpa bilah browser, navigasi mulus dan nyaman seperti aplikasi Play Store.
+                        </div>
+                      </div>
+
+                      <div style={{ padding: '16px', background: 'var(--bg-secondary, #FAFBFD)', borderRadius: 14, border: '1px solid var(--border-light)' }}>
+                        <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(245,158,11,0.15)', color: '#D97706', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
+                          <Icon name="schedule" size={20} />
+                        </div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>Pengingat Rutin Jam 20:00</div>
+                        <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4, lineHeight: 1.4 }}>
+                          Dapatkan pengingat otomatis tiap malam langsung di layar notifikasi perangkat.
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Panduan Instalasi Langkah Demi Langkah */}
+                  <div style={{ padding: '20px 24px', background: '#F8FAFC', borderRadius: 14, border: '1px solid var(--border-light)' }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 14 }}>
+                      Panduan Manual Pemasangan di Berbagai Perangkat:
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}>
+                      <div style={{ background: '#FFFFFF', padding: '14px 16px', borderRadius: 12, border: '1px solid var(--border-light)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700, color: '#0284C7' }}>
+                          <Icon name="android" size={18} />
+                          <span>Android (Google Chrome / Edge)</span>
+                        </div>
+                        <ol style={{ fontSize: 12, color: 'var(--text-secondary)', paddingLeft: 18, marginTop: 8, lineHeight: 1.5 }}>
+                          <li>Ketuk menu titik tiga (⋮) di pojok kanan atas browser.</li>
+                          <li>Pilih <strong>&quot;Pasang aplikasi&quot;</strong> atau <strong>&quot;Tambahkan ke Layar Utama&quot;</strong>.</li>
+                          <li>Ketuk <strong>&quot;Instal&quot;</strong>. Selesai!</li>
+                        </ol>
+                      </div>
+
+                      <div style={{ background: '#FFFFFF', padding: '14px 16px', borderRadius: 12, border: '1px solid var(--border-light)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700, color: '#0B1728' }}>
+                          <Icon name="apple" size={18} />
+                          <span>iPhone / iPad (Safari)</span>
+                        </div>
+                        <ol style={{ fontSize: 12, color: 'var(--text-secondary)', paddingLeft: 18, marginTop: 8, lineHeight: 1.5 }}>
+                          <li>Buka website di browser <strong>Safari</strong>.</li>
+                          <li>Ketuk tombol <strong>Bagikan (Share ⎋)</strong> di bilah bawah.</li>
+                          <li>Pilih <strong>&quot;Tambah ke Layar Utama&quot; (+)</strong> lalu ketuk Tambah.</li>
+                        </ol>
+                      </div>
+
+                      <div style={{ background: '#FFFFFF', padding: '14px 16px', borderRadius: 12, border: '1px solid var(--border-light)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700, color: '#7C3AED' }}>
+                          <Icon name="laptop" size={18} />
+                          <span>Laptop / PC (Windows &amp; Mac)</span>
+                        </div>
+                        <ol style={{ fontSize: 12, color: 'var(--text-secondary)', paddingLeft: 18, marginTop: 8, lineHeight: 1.5 }}>
+                          <li>Buka di Chrome, Edge, atau Brave.</li>
+                          <li>Klik ikon <strong>Install (⊕)</strong> di sebelah kanan address bar browser.</li>
+                          <li>Atau klik menu (⋮) &gt; <strong>&quot;Pasang Money Management&quot;</strong>.</li>
+                        </ol>
                       </div>
                     </div>
                   </div>

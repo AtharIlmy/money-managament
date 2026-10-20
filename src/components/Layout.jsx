@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Navigate, Outlet, NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { usePrivacy } from '../context/PrivacyContext';
+import { usePWA } from '../context/PWAContext';
 import Sidebar from './Sidebar';
 import Icon from './Icon';
 import NotificationButton from './NotificationButton';
@@ -19,6 +20,7 @@ const MOBILE_BOTTOM_NAV = [
 export default function Layout() {
   const { isAuthenticated, loading } = useAuth();
   const { isHidden, toggle: togglePrivacy } = usePrivacy();
+  const { openInstallModal, isInstalled } = usePWA();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   // Initialize reminder scheduler for device
@@ -100,6 +102,30 @@ export default function Layout() {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          {!isInstalled && (
+            <button
+              type="button"
+              onClick={openInstallModal}
+              aria-label="Download Aplikasi"
+              style={{
+                background: 'rgba(82, 181, 253, 0.12)',
+                border: '1px solid rgba(82, 181, 253, 0.28)',
+                color: '#0284C7',
+                borderRadius: 8,
+                padding: '5px 9px',
+                fontSize: 12,
+                fontWeight: 700,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+                cursor: 'pointer',
+              }}
+              title="Download Aplikasi"
+            >
+              <Icon name="download" size={15} />
+              <span>Unduh App</span>
+            </button>
+          )}
           <NotificationButton />
         </div>
       </header>

@@ -2,7 +2,9 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const AuthContext = createContext(null);
 
-export const API_BASE_URL = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
+// Fallback otomatis ke URL Railway backend jika VITE_API_URL tidak terdefinisi
+const RAILWAY_BACKEND_URL = 'https://money-managament-production.up.railway.app';
+export const API_BASE_URL = (import.meta.env.VITE_API_URL || RAILWAY_BACKEND_URL).replace(/\/$/, '');
 
 export const getApiUrl = (endpoint) => {
   if (!endpoint.startsWith('/')) endpoint = `/${endpoint}`;

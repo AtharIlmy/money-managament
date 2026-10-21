@@ -25,13 +25,15 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware
+// Middleware CORS — Perbaikan izin origin untuk browser & Vercel
 app.use(
   cors({
-    origin: '*',
-    credentials: true,
+    origin: '*', // Mengizinkan request dari frontend mana pun (termasuk Vercel)
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
   })
 );
+
 app.use(express.json());
 
 // API Routes
@@ -71,8 +73,9 @@ async function start() {
     console.error('Inisialisasi database terhambat:', err.message);
   }
 
-  app.listen(PORT, () => {
-    console.log(`🚀 Server Express API berjalan di http://localhost:${PORT}`);
+  // Bind server ke '0.0.0.0' agar Railway dapat menerima koneksi publik
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 Server Express API berjalan pada port ${PORT}`);
     // Start the daily WA reminder cron job
     initReminderScheduler();
   });

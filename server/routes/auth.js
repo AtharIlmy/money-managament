@@ -19,6 +19,11 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'Password minimal 6 karakter' });
     }
 
+    const existing = await query('SELECT id FROM users WHERE email = $1', [email]);
+    if (existing.rows.length > 0) {
+      return res.status(400).json({ error: 'Email sudah terdaftar. Silakan masuk.' });
+    }
+
     // Validate and normalize phone number if provided
     let cleanPhone = null;
     if (phone_number && phone_number.toString().trim()) {
@@ -42,11 +47,6 @@ router.post('/register', async (req, res) => {
       if (phoneConflict.rows.length > 0) {
         return res.status(400).json({ error: 'Nomor WhatsApp ini sudah digunakan oleh akun lain.' });
       }
-    }
-
-    const existing = await query('SELECT id FROM users WHERE email = $1', [email]);
-    if (existing.rows.length > 0) {
-      return res.status(400).json({ error: 'Email sudah terdaftar. Silakan masuk.' });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);

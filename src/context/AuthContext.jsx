@@ -4,7 +4,31 @@ const AuthContext = createContext(null);
 
 // Fallback otomatis ke URL Railway backend jika VITE_API_URL tidak terdefinisi
 const RAILWAY_BACKEND_URL = 'https://money-managament-production.up.railway.app';
-export const API_BASE_URL = (import.meta.env.VITE_API_URL || RAILWAY_BACKEND_URL).replace(/\/$/, '');
+
+const resolveApiBaseUrl = () => {
+  // 1. Jika ada env variable VITE_API_URL yang diisi spesifik
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL.replace(/\/$/, '');
+  }
+
+  // 2. Jika berjalan secara lokal (localhost / 127.0.0.1 / Vite dev server)
+  // Gunakan relative path '' agar request diarahkan ke proxy Vite atau backend lokal (port 5000)
+  if (
+    import.meta.env.DEV ||
+    (typeof window !== 'undefined' &&
+      (window.location.hostname === 'localhost' ||
+       window.location.hostname === '127.0.0.1' ||
+       window.location.hostname === '::1' ||
+       window.location.hostname.endsWith('.local')))
+  ) {
+    return '';
+  }
+
+  // 3. Fallback untuk deployment terpisah (misal di hosting publik)
+  return RAILWAY_BACKEND_URL.replace(/\/$/, '');
+};
+
+export const API_BASE_URL = resolveApiBaseUrl();
 
 export const getApiUrl = (endpoint) => {
   if (!endpoint.startsWith('/')) endpoint = `/${endpoint}`;
@@ -58,12 +82,22 @@ export function AuthProvider({ children }) {
       headers['Authorization'] = `Bearer ${token}`;
     }
 
-    const res = await fetch(fullUrl, { ...options, headers });
-    if (res.status === 401) {
-      logout();
-      throw new Error('Sesi telah berakhir. Silakan masuk kembali.');
+    try {
+      const res = await fetch(fullUrl, { ...options, headers });
+      if (res.status === 401) {
+        logout();
+        throw new Error('Sesi telah berakhir. Silakan masuk kembali.');
+      }
+      return res;
+    } catch (err) {
+      if (err.message && err.message.includes('Sesi telah berakhir')) {
+        throw err;
+      }
+      if (err.name === 'TypeError' || err.message === 'Failed to fetch') {
+        throw new Error('Tidak dapat terhubung ke server backend. Pastikan server backend sedang berjalan.');
+      }
+      throw err;
     }
-    return res;
   };
 
   useEffect(() => {
@@ -98,11 +132,19 @@ export function AuthProvider({ children }) {
   }, [token]);
 
   const login = async (email, password) => {
-    const res = await fetch(getApiUrl('/api/auth/login'), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    });
+    let res;
+    try {
+      res = await fetch(getApiUrl('/api/auth/login'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+    } catch (err) {
+      if (err.name === 'TypeError' || err.message === 'Failed to fetch') {
+        throw new Error('Tidak dapat terhubung ke server backend. Pastikan server backend sedang berjalan.');
+      }
+      throw err;
+    }
 
     const data = await parseApiResponse(res, 'Gagal masuk');
     if (!res.ok) {
@@ -116,11 +158,19 @@ export function AuthProvider({ children }) {
   };
 
   const register = async (name, email, password, phone = '') => {
-    const res = await fetch(getApiUrl('/api/auth/register'), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, email, password, phone_number: phone || null }),
-    });
+    let res;
+    try {
+      res = await fetch(getApiUrl('/api/auth/register'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password, phone_number: phone || null }),
+      });
+    } catch (err) {
+      if (err.name === 'TypeError' || err.message === 'Failed to fetch') {
+        throw new Error('Tidak dapat terhubung ke server backend. Pastikan server backend sedang berjalan.');
+      }
+      throw err;
+    }
 
     const data = await parseApiResponse(res, 'Gagal mendaftar');
     if (!res.ok) {

@@ -46,7 +46,10 @@ export default function Register() {
       await register(form.name, form.email, form.password, form.phone.trim());
       navigate('/dasbor');
     } catch (err) {
-      setError(err.message || 'Pendaftaran gagal');
+      const msg = err.message === 'Failed to fetch'
+        ? 'Tidak dapat terhubung ke server backend. Pastikan server backend sedang berjalan.'
+        : (err.message || 'Pendaftaran gagal');
+      setError(msg);
     } finally {
       setLoading(false);
     }

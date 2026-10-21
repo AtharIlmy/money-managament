@@ -35,7 +35,10 @@ export default function Login({ defaultShowForgot = false }) {
       await login(form.email, form.password);
       navigate('/dasbor');
     } catch (err) {
-      setError(err.message || 'Email atau kata sandi tidak sesuai');
+      const msg = err.message === 'Failed to fetch'
+        ? 'Tidak dapat terhubung ke server backend. Pastikan server backend sedang berjalan.'
+        : (err.message || 'Email atau kata sandi tidak sesuai');
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -63,7 +66,7 @@ export default function Login({ defaultShowForgot = false }) {
         setForgotError(data.error || 'Email tidak ditemukan dalam sistem');
       }
     } catch (err) {
-      setForgotError(err.message || 'Gagal memverifikasi email');
+      setForgotError(err.message === 'Failed to fetch' ? 'Tidak dapat terhubung ke server backend.' : (err.message || 'Gagal memverifikasi email'));
     } finally {
       setForgotLoading(false);
     }
@@ -99,7 +102,7 @@ export default function Login({ defaultShowForgot = false }) {
         setForgotError(data.error || 'Gagal mereset kata sandi');
       }
     } catch (err) {
-      setForgotError(err.message || 'Terjadi kesalahan pada server');
+      setForgotError(err.message === 'Failed to fetch' ? 'Tidak dapat terhubung ke server backend.' : (err.message || 'Terjadi kesalahan pada server'));
     } finally {
       setForgotLoading(false);
     }

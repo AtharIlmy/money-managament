@@ -73,7 +73,7 @@ async function start() {
     console.error('Inisialisasi database terhambat:', err.message);
   }
 
-  // Bind server ke '0.0.0.0' agar Railway dapat menerima koneksi publik
+  // Bind server ke '0.0.0.0' agar Railway/lokal dapat menerima koneksi
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Server Express API berjalan pada port ${PORT}`);
     // Start the daily WA reminder cron job
@@ -81,6 +81,14 @@ async function start() {
   });
 }
 
-start();
+// Hanya jalankan start() jika tidak di lingkungan Vercel Serverless
+if (!process.env.VERCEL) {
+  start();
+} else {
+  // Di Vercel Serverless, inisialisasi skema DB saat cold-start tanpa memblokir port
+  initDatabase().catch((err) => {
+    console.error('Inisialisasi database di Vercel terhambat:', err.message);
+  });
+}
 
 export default app;

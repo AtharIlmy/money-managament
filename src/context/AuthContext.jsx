@@ -2,30 +2,14 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const AuthContext = createContext(null);
 
-// Fallback otomatis ke URL Railway backend jika VITE_API_URL tidak terdefinisi
-const RAILWAY_BACKEND_URL = 'https://money-managament-production.up.railway.app';
-
 const resolveApiBaseUrl = () => {
-  // 1. Jika ada env variable VITE_API_URL yang diisi spesifik
+  // 1. Jika ada env variable VITE_API_URL yang diisi spesifik di dashboard Vercel
   if (import.meta.env.VITE_API_URL) {
     return import.meta.env.VITE_API_URL.replace(/\/$/, '');
   }
 
-  // 2. Jika berjalan secara lokal (localhost / 127.0.0.1 / Vite dev server)
-  // Gunakan relative path '' agar request diarahkan ke proxy Vite atau backend lokal (port 5000)
-  if (
-    import.meta.env.DEV ||
-    (typeof window !== 'undefined' &&
-      (window.location.hostname === 'localhost' ||
-       window.location.hostname === '127.0.0.1' ||
-       window.location.hostname === '::1' ||
-       window.location.hostname.endsWith('.local')))
-  ) {
-    return '';
-  }
-
-  // 3. Fallback untuk deployment terpisah (misal di hosting publik)
-  return RAILWAY_BACKEND_URL.replace(/\/$/, '');
+  // 2. Selalu gunakan relative path '' agar request otomatis mengarah ke domain Vercel yang sama (/api/...)
+  return '';
 };
 
 export const API_BASE_URL = resolveApiBaseUrl();

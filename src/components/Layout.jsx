@@ -126,27 +126,6 @@ export default function Layout() {
               <span>Unduh App</span>
             </button>
           )}
-          {/* Privacy Eye Toggle on Mobile */}
-          <button
-            type="button"
-            onClick={togglePrivacy}
-            aria-label={isHidden ? "Tampilkan Saldo" : "Sembunyikan Saldo"}
-            title={isHidden ? "Tampilkan Saldo" : "Sembunyikan Saldo"}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: isHidden ? '#2563EB' : 'var(--text-secondary)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: 6,
-              borderRadius: 8,
-              transition: 'all 0.15s ease',
-            }}
-          >
-            <Icon name={isHidden ? 'visibility_off' : 'visibility'} size={20} />
-          </button>
           <NotificationButton />
         </div>
       </header>

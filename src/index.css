@@ -391,7 +391,6 @@ input, select, textarea { font-family: 'Plus Jakarta Sans', sans-serif; outline:
   padding: 20px 24px;
   color: #FFFFFF;
   display: flex;
-  flex-direction: row;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
@@ -400,7 +399,6 @@ input, select, textarea { font-family: 'Plus Jakarta Sans', sans-serif; outline:
   position: relative;
   overflow: visible;
   z-index: 20;
-  width: 100%;
 }
 
 .navy-banner::before,
@@ -572,9 +570,7 @@ input, select, textarea { font-family: 'Plus Jakarta Sans', sans-serif; outline:
 .page-content {
   flex: 1;
   padding: 18px 28px;
-  width: 100%;
   max-width: 100%;
-  box-sizing: border-box;
 }
 
 /* CARDS */
@@ -617,54 +613,12 @@ input, select, textarea { font-family: 'Plus Jakarta Sans', sans-serif; outline:
   padding: 20px;
 }
 
-/* STAT CARDS & RESPONSIVE DASHBOARD GRIDS */
+/* STAT CARDS - 3 COLUMNS AS IN MOCKUP */
 .stat-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 16px;
   margin-bottom: 22px;
-}
-
-.dashboard-stats-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 14px;
-}
-
-.dashboard-mid-grid {
-  display: grid;
-  grid-template-columns: 1.6fr 1fr;
-  gap: 14px;
-}
-
-.transaction-filter-grid {
-  display: grid;
-  grid-template-columns: minmax(220px, 2fr) minmax(140px, 1fr) minmax(140px, 1fr);
-  gap: 12px;
-}
-
-.settings-layout-grid {
-  display: grid;
-  grid-template-columns: 240px 1fr;
-  gap: 24px;
-  align-items: start;
-}
-
-.help-layout-grid {
-  display: grid;
-  grid-template-columns: 1.4fr 1fr;
-  gap: 24px;
-  align-items: start;
-}
-
-/* Mobile-only elements: hidden completely by default on desktop */
-.mobile-top-bar,
-.mobile-bottom-nav,
-.mobile-sidebar-backdrop,
-.sidebar-close-btn,
-.mobile-fab-btn,
-.dashboard-quick-actions {
-  display: none !important;
 }
 
 .stat-card {
@@ -1104,7 +1058,9 @@ input, select, textarea { font-family: 'Plus Jakarta Sans', sans-serif; outline:
 @media (max-width: 1100px) {
   .stat-cards { grid-template-columns: 1fr; }
   .grid-2-1 { grid-template-columns: 1fr; }
-  /* navy-banner stays row on desktop — only collapses on mobile (<=768px) */
+  .navy-banner { flex-direction: column; align-items: flex-start; }
+  .navy-banner-right { align-items: flex-start; width: 100%; }
+  .navy-banner-stat-box { width: 100%; text-align: left; }
 }
 
 /* ARUS DOMPET MOCKUP STYLING */
@@ -1210,52 +1166,72 @@ input, select, textarea { font-family: 'Plus Jakarta Sans', sans-serif; outline:
   gap: 14px;
 }
 
-/* =========================================
-   COMPREHENSIVE RESPONSIVE SYSTEM
-   Tablet, Mobile, and Touch Adaptations
-   ========================================= */
-
-/* --- TABLET & SMALL LAPTOP (<= 1024px) --- */
 @media (max-width: 1024px) {
-  :root {
-    --sidebar-width: 210px;
-  }
-
-  .page-content {
-    padding: 16px 20px 32px !important;
-  }
-
-  /* Grids adapt gracefully to 2 columns */
-  .dashboard-stats-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    gap: 12px !important;
-  }
-
-  .stat-cards {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    gap: 14px !important;
-  }
-
-  .dashboard-mid-grid,
-  .wallet-mid-grid,
-  .grid-2-1,
-  .settings-layout-grid,
-  .help-layout-grid {
-    grid-template-columns: 1fr !important;
-    gap: 16px !important;
-  }
-
   .wallet-stats-grid {
     grid-template-columns: repeat(2, 1fr) !important;
-    gap: 14px !important;
   }
-
-  .transaction-filter-grid {
-    grid-template-columns: 1fr 1fr !important;
+  .wallet-mid-grid {
+    grid-template-columns: 1fr !important;
   }
 }
 
-/* --- MOBILE & PHABLET (<= 768px) --- */
+@media (max-width: 768px) {
+  .wallet-stats-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .wallet-actions-row button {
+    flex: 1 1 calc(50% - 10px);
+    justify-content: center;
+    text-align: center;
+  }
+  .wallet-summary-row {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 480px) {
+  .wallet-actions-row button {
+    flex: 1 1 100% !important;
+  }
+  .wallet-item-card {
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 10px !important;
+  }
+  .wallet-item-card > div:last-child {
+    justify-content: space-between;
+    width: 100%;
+  }
+}
+
+
+.sidebar-quote-card {
+  background: #FBF8F2;
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin: 12px 14px;
+  border: 1px solid #EFEAE2;
+}
+
+/* =========================================
+   MOBILE RESPONSIVENESS & TOUCH ADAPTATIONS
+   ========================================= */
+.mobile-top-bar {
+  display: none;
+}
+
+.mobile-bottom-nav {
+  display: none;
+}
+
+.mobile-sidebar-backdrop {
+  display: none;
+}
+
+.sidebar-close-btn {
+  display: none;
+}
+
 @media (max-width: 768px) {
   :root {
     --sidebar-width: 0px;
@@ -1266,13 +1242,12 @@ input, select, textarea { font-family: 'Plus Jakarta Sans', sans-serif; outline:
     display: none !important;
   }
 
-  /* Mobile Top Sticky Bar with Glassmorphism */
+  /* Mobile Top Bar */
   .mobile-top-bar {
-    display: flex !important;
+    display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 10px 16px;
-    padding-top: calc(10px + env(safe-area-inset-top, 0px));
     background: var(--bg-card);
     border-bottom: 1px solid var(--border);
     position: sticky;
@@ -1280,9 +1255,8 @@ input, select, textarea { font-family: 'Plus Jakarta Sans', sans-serif; outline:
     left: 0;
     right: 0;
     z-index: 900;
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    box-shadow: 0 1px 4px rgba(14, 32, 56, 0.04);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
   }
 
   /* Mobile Drawer Sidebar */
@@ -1291,19 +1265,18 @@ input, select, textarea { font-family: 'Plus Jakarta Sans', sans-serif; outline:
     top: 0 !important;
     left: 0 !important;
     bottom: 0 !important;
-    width: 280px !important;
-    max-width: 86vw !important;
+    width: 270px !important;
+    max-width: 85vw !important;
     z-index: 9999 !important;
     transform: translateX(-100%) !important;
-    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1) !important;
     box-shadow: none !important;
     overflow-y: auto !important;
-    -webkit-overflow-scrolling: touch;
   }
 
   .sidebar.mobile-open {
     transform: translateX(0) !important;
-    box-shadow: 12px 0 40px rgba(0, 0, 0, 0.45) !important;
+    box-shadow: 8px 0 36px rgba(0, 0, 0, 0.4) !important;
   }
 
   .sidebar-close-btn {
@@ -1319,9 +1292,9 @@ input, select, textarea { font-family: 'Plus Jakarta Sans', sans-serif; outline:
     left: 0 !important;
     right: 0 !important;
     bottom: 0 !important;
-    background: rgba(14, 32, 56, 0.6) !important;
-    backdrop-filter: blur(4px) !important;
-    -webkit-backdrop-filter: blur(4px) !important;
+    background: rgba(14, 32, 56, 0.55) !important;
+    backdrop-filter: blur(3px) !important;
+    -webkit-backdrop-filter: blur(3px) !important;
     z-index: 9998 !important;
     animation: fadeIn 0.2s ease-out;
   }
@@ -1329,7 +1302,7 @@ input, select, textarea { font-family: 'Plus Jakarta Sans', sans-serif; outline:
   /* Main Content Area on Mobile */
   .main-content {
     margin-left: 0 !important;
-    padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px)) !important;
+    padding-bottom: 76px !important; /* Prevents overlap with bottom nav */
     min-height: calc(100vh - 54px);
   }
 
@@ -1346,14 +1319,14 @@ input, select, textarea { font-family: 'Plus Jakarta Sans', sans-serif; outline:
     bottom: 0 !important;
     left: 0 !important;
     right: 0 !important;
-    height: 62px !important;
+    height: 60px !important;
     background: var(--bg-card) !important;
     border-top: 1px solid var(--border) !important;
     z-index: 900 !important;
     padding-bottom: env(safe-area-inset-bottom, 0) !important;
-    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08) !important;
-    backdrop-filter: blur(16px) !important;
-    -webkit-backdrop-filter: blur(16px) !important;
+    box-shadow: 0 -4px 18px rgba(0, 0, 0, 0.07) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
   }
 
   .mobile-bottom-item {
@@ -1365,106 +1338,23 @@ input, select, textarea { font-family: 'Plus Jakarta Sans', sans-serif; outline:
     height: 100%;
     text-decoration: none;
     color: var(--text-secondary);
-    font-size: 10.5px;
+    font-size: 10px;
     font-weight: 600;
-    gap: 3px;
-    transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
-    -webkit-tap-highlight-color: transparent;
-    position: relative;
+    gap: 2px;
+    transition: all 0.15s ease;
   }
 
   .mobile-bottom-item.active {
     color: var(--primary);
-    font-weight: 800;
-  }
-
-  .mobile-bottom-item.active::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 24px;
-    height: 3px;
-    border-radius: 0 0 4px 4px;
-    background: var(--primary);
-  }
-  /* Quick Actions Shortcuts Bar on Mobile */
-  .dashboard-quick-actions {
-    display: flex !important;
-    align-items: center;
-    justify-content: space-around;
-    gap: 6px;
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 12px 4px;
-    margin-bottom: 16px;
-    box-shadow: var(--shadow-xs);
-  }
-
-  .quick-action-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    text-decoration: none;
-    color: var(--text-primary);
-    font-size: 11px;
     font-weight: 700;
-    flex: 1;
-    transition: transform 0.16s ease;
-    -webkit-tap-highlight-color: transparent;
-  }
-
-  .quick-action-item:active {
-    transform: scale(0.92);
-  }
-
-  .quick-action-icon {
-    width: 44px;
-    height: 44px;
-    border-radius: 14px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-    transition: transform 0.15s ease;
-  }
-
-  /* Mobile Floating Action Button (FAB) */
-  .mobile-fab-btn {
-    display: inline-flex !important;
-    align-items: center;
-    justify-content: center;
-    gap: 7px;
-    position: fixed !important;
-    bottom: calc(76px + env(safe-area-inset-bottom, 0px)) !important;
-    right: 16px !important;
-    background: var(--primary) !important;
-    color: #FFFFFF !important;
-    padding: 12px 18px !important;
-    border-radius: 9999px !important;
-    border: none !important;
-    font-size: 13px !important;
-    font-weight: 700 !important;
-    box-shadow: 0 6px 22px rgba(14, 32, 56, 0.35) !important;
-    z-index: 850 !important;
-    cursor: pointer !important;
-    transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.18s ease !important;
-    -webkit-tap-highlight-color: transparent;
-  }
-
-  .mobile-fab-btn:active {
-    transform: scale(0.94) !important;
   }
 
   /* Responsive Hero Navy Banner */
   .navy-banner {
     flex-direction: column !important;
     align-items: stretch !important;
-    padding: 20px 18px !important;
-    gap: 16px !important;
+    padding: 18px 16px !important;
+    gap: 14px !important;
   }
 
   .navy-banner-left {
@@ -1480,73 +1370,19 @@ input, select, textarea { font-family: 'Plus Jakarta Sans', sans-serif; outline:
     width: 100% !important;
   }
 
-  /* Filter Tabs Horizontal Swipe */
-  .filter-tabs {
-    overflow-x: auto !important;
-    -webkit-overflow-scrolling: touch !important;
-    white-space: nowrap !important;
-    max-width: 100% !important;
-    scrollbar-width: none !important;
-    padding: 3px !important;
-  }
-
-  .filter-tabs::-webkit-scrollbar {
-    display: none !important;
-  }
-
-  .transaction-filter-grid {
+  /* Responsive Grid Layouts */
+  .dashboard-stats-grid,
+  .wallet-stats-grid,
+  .dashboard-mid-grid,
+  .wallet-mid-grid,
+  .settings-layout-grid,
+  .help-layout-grid {
     grid-template-columns: 1fr !important;
-    gap: 10px !important;
   }
 
-  /* Native Mobile Bottom Sheet Modals */
-  .modal-backdrop {
-    align-items: flex-end !important;
-    padding: 0 !important;
-  }
-
-  .modal {
-    max-width: 100% !important;
-    width: 100% !important;
-    max-height: 88vh !important;
-    border-bottom-left-radius: 0 !important;
-    border-bottom-right-radius: 0 !important;
-    border-top-left-radius: 24px !important;
-    border-top-right-radius: 24px !important;
-    padding: 22px 18px calc(24px + env(safe-area-inset-bottom, 0px)) !important;
-    position: relative;
-    box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.25) !important;
-    animation: slideUp 0.26s cubic-bezier(0.16, 1, 0.3, 1) !important;
-  }
-
-  .modal::before {
-    content: '';
-    display: block;
-    width: 38px;
-    height: 4px;
-    border-radius: 999px;
-    background: var(--border);
-    margin: 0 auto 16px;
-  }
-
-  /* Touch-friendly Table Horizontal Scroll */
+  /* Tables horizontal touch scroll */
   .data-table {
-    min-width: 520px;
-  }
-
-  /* Wallet layout adaptations */
-  .wallet-stats-grid {
-    grid-template-columns: 1fr !important;
-  }
-
-  .wallet-actions-row button {
-    flex: 1 1 calc(50% - 10px);
-    justify-content: center;
-    text-align: center;
-  }
-
-  .wallet-summary-row {
-    flex-direction: column;
+    min-width: 540px;
   }
 
   /* Auth Screens */
@@ -1554,56 +1390,13 @@ input, select, textarea { font-family: 'Plus Jakarta Sans', sans-serif; outline:
   .auth-right { width: 100% !important; max-width: 100% !important; padding: 28px 18px !important; }
 }
 
-/* --- SMALL MOBILE & COMPACT SCREENS (<= 540px) --- */
-@media (max-width: 540px) {
+@media (max-width: 480px) {
   .page-content {
     padding: 10px 10px 24px !important;
   }
 
-  .navy-banner {
-    padding: 16px 14px !important;
-    border-radius: 14px !important;
-  }
-
   .navy-banner h1 {
     font-size: 20px !important;
-    line-height: 1.25 !important;
-  }
-
-  .dashboard-stats-grid,
-  .stat-cards {
-    grid-template-columns: 1fr !important;
-    gap: 10px !important;
-  }
-
-  .stat-card-value {
-    font-size: 20px !important;
-  }
-
-  .wallet-actions-row button {
-    flex: 1 1 100% !important;
-  }
-
-  .wallet-item-card {
-    flex-direction: column;
-    align-items: stretch !important;
-    gap: 10px !important;
-  }
-
-  .wallet-item-card > div:last-child {
-    justify-content: space-between;
-    width: 100%;
-  }
-
-  .btn {
-    padding: 9px 14px;
-    font-size: 12.5px;
-  }
-
-  .form-input,
-  .form-select {
-    font-size: 14px !important; /* Prevents auto-zoom on iOS */
-    min-height: 42px;
   }
 }
 

@@ -360,6 +360,40 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {/* Quick Actions Shortcuts for Mobile & Tablet */}
+        <div className="dashboard-quick-actions">
+          <Link to="/transaksi" className="quick-action-item">
+            <div className="quick-action-icon" style={{ background: '#EFF6FF', color: '#2563EB' }}>
+              <Icon name="add" size={20} />
+            </div>
+            <span>Catat Tx</span>
+          </Link>
+          <Link to="/dompet" className="quick-action-item">
+            <div className="quick-action-icon" style={{ background: '#ECFDF5', color: '#059669' }}>
+              <Icon name="account_balance_wallet" size={20} />
+            </div>
+            <span>Dompet</span>
+          </Link>
+          <Link to="/tabungan" className="quick-action-item">
+            <div className="quick-action-icon" style={{ background: '#FEF3C7', color: '#D97706' }}>
+              <Icon name="savings" size={20} />
+            </div>
+            <span>Tabungan</span>
+          </Link>
+          <Link to="/anggaran" className="quick-action-item">
+            <div className="quick-action-icon" style={{ background: '#F5F3FF', color: '#7C3AED' }}>
+              <Icon name="pie_chart" size={20} />
+            </div>
+            <span>Anggaran</span>
+          </Link>
+          <Link to="/laporan" className="quick-action-item">
+            <div className="quick-action-icon" style={{ background: '#FFF1F2', color: '#E11D48' }}>
+              <Icon name="bar_chart" size={20} />
+            </div>
+            <span>Laporan</span>
+          </Link>
+        </div>
+
         {/* 4 Summary Cards Row - Responsive Grid */}
         <div className="dashboard-stats-grid" style={{ marginBottom: 16 }}>
           {/* 1. Pemasukan */}

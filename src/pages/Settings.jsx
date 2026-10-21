@@ -561,7 +561,7 @@ export default function Settings() {
         </div>
 
         {/* Tab Navigation & Content Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: '240px 1fr', gap: 24, alignItems: 'start' }}>
+        <div className="settings-layout-grid" style={{ gap: 24, alignItems: 'start' }}>
           {/* Side Tabs */}
           <div className="card" style={{ padding: '12px 10px', borderRadius: 16 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', padding: '8px 12px 10px', letterSpacing: '0.06em' }}>

@@ -360,8 +360,8 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* 4 Summary Cards Row - Perfectly Proportioned */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 14, marginBottom: 16 }}>
+        {/* 4 Summary Cards Row - Responsive Grid */}
+        <div className="dashboard-stats-grid" style={{ marginBottom: 16 }}>
           {/* 1. Pemasukan */}
           <div className="card" style={{ padding: '16px 18px', borderRadius: 14, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', border: '1px solid var(--border)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
@@ -513,8 +513,8 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Middle Section: 2 Columns Grid (~62% Arus Kas vs ~38% Ringkasan Anggaran) */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: 14, marginBottom: 14 }}>
+        {/* Middle Section: Responsive 2 Columns Grid (~62% Arus Kas vs ~38% Ringkasan Anggaran) */}
+        <div className="dashboard-mid-grid" style={{ marginBottom: 14 }}>
           {/* Arus Kas Chart Card */}
           <div className="card" style={{ padding: '16px 18px', borderRadius: 14 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>

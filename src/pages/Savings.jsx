@@ -278,7 +278,7 @@ export default function Savings() {
               Memuat data tabungan...
             </div>
           ) : goals.length > 0 ? (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 18 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))', gap: 18 }}>
               {goals.map((g) => {
                 const current = parseFloat(g.current_amount || 0);
                 const target = parseFloat(g.target_amount || 1);

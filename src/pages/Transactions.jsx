@@ -470,13 +470,7 @@ export default function Transactions() {
           </div>
 
           {/* Bottom Row: Balanced 3-column Grid for Search + Dompet + Kategori */}
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'minmax(220px, 2fr) minmax(140px, 1fr) minmax(140px, 1fr)',
-              gap: 12,
-            }}
-          >
+          <div className="transaction-filter-grid">
             {/* Search Input with Search Icon */}
             <div style={{ position: 'relative' }}>
               <div
@@ -728,6 +722,23 @@ export default function Transactions() {
           )}
         </div>
       </div>
+
+      {/* Mobile Floating Action Button (FAB) */}
+      <button
+        type="button"
+        id="mobile-add-tx-btn"
+        className="mobile-fab-btn"
+        onClick={() => {
+          if (wallets.length > 0 && !form.wallet_id) {
+            setForm((f) => ({ ...f, wallet_id: wallets[0].id }));
+          }
+          setShowModal(true);
+        }}
+        aria-label="Catat Transaksi Baru"
+      >
+        <Icon name="add" size={20} />
+        <span>Catat Transaksi</span>
+      </button>
 
       {/* Modal Catat Transaksi — Sesuai Tema Website */}
       {showModal && (

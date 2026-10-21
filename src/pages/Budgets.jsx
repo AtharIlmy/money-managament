@@ -299,7 +299,7 @@ export default function Budgets() {
               <div className="spinner" />
             </div>
           ) : budgets.length > 0 ? (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 16 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))', gap: 16 }}>
               {budgets.map((b) => {
                 const spent = parseFloat(b.spent || 0);
                 const limit = parseFloat(b.amount || 1);
@@ -405,7 +405,7 @@ export default function Budgets() {
           </div>
 
           {goals.length > 0 ? (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 16 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))', gap: 16 }}>
               {goals.map((g) => {
                 const current = parseFloat(g.current_amount || 0);
                 const target = parseFloat(g.target_amount || 1);

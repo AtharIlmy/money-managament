@@ -392,7 +392,7 @@ export default function Help() {
         </div>
 
         {/* 2-Column Main Layout: Left FAQ Accordion (60%), Right Contact Channels & Quick Ticket (40%) */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 24, alignItems: 'start' }}>
+        <div className="help-layout-grid" style={{ gap: 24, alignItems: 'start' }}>
           {/* LEFT: FAQ ACCORDION */}
           <div>
             <div className="card" style={{ padding: '22px 24px', borderRadius: 16 }}>

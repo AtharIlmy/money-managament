@@ -1069,6 +1069,13 @@ input, select, textarea { font-family: 'Plus Jakarta Sans', sans-serif; outline:
   gap: 14px;
 }
 
+.transaction-filter-grid {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 1fr 1fr;
+  gap: 12px;
+  align-items: center;
+}
+
 /* Tablet Breakpoint (769px - 1024px) */
 @media (max-width: 1024px) {
   .dashboard-summary-grid,
@@ -1078,6 +1085,9 @@ input, select, textarea { font-family: 'Plus Jakarta Sans', sans-serif; outline:
   .dashboard-mid-grid,
   .grid-2-1 {
     grid-template-columns: 1fr !important;
+  }
+  .transaction-filter-grid {
+    grid-template-columns: 1fr 1fr !important;
   }
 }
 
@@ -1408,7 +1418,8 @@ input, select, textarea { font-family: 'Plus Jakarta Sans', sans-serif; outline:
   .dashboard-mid-grid,
   .wallet-mid-grid,
   .settings-layout-grid,
-  .help-layout-grid {
+  .help-layout-grid,
+  .transaction-filter-grid {
     grid-template-columns: 1fr !important;
   }
 

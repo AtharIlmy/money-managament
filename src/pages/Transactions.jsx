@@ -373,104 +373,10 @@ export default function Transactions() {
               {netBalance >= 0 ? '✓ Arus Kas Positif' : '✕ Arus Kas Negatif'}
             </div>
           </div>
-        </div>
-
-        {/* Filter bar & Tabs */}
+         {/* Filter bar & Tabs */}
         <div className="card" style={{ marginBottom: 20, padding: '16px 20px', borderRadius: 14 }}>
-          {/* Top Row: Type Tabs + Quick Tax Filter Pill + Result Counter */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              flexWrap: 'wrap',
-              gap: 12,
-              marginBottom: 14,
-            }}
-          >
-            {/* Filter Tabs + Quick Tax Pill */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <div className="filter-tabs" style={{ margin: 0 }}>
-                <button
-                  type="button"
-                  className={`filter-tab ${filter.type === '' ? 'active' : ''}`}
-                  onClick={() => setFilter((f) => ({ ...f, type: '' }))}
-                >
-                  Semua Transaksi
-                </button>
-                <button
-                  type="button"
-                  className={`filter-tab ${filter.type === 'income' ? 'active' : ''}`}
-                  onClick={() => setFilter((f) => ({ ...f, type: 'income' }))}
-                >
-                  Pemasukan
-                </button>
-                <button
-                  type="button"
-                  className={`filter-tab ${filter.type === 'expense' ? 'active' : ''}`}
-                  onClick={() => setFilter((f) => ({ ...f, type: 'expense' }))}
-                >
-                  Pengeluaran
-                </button>
-              </div>
-
-              {/* Quick Tax Pill */}
-              <button
-                type="button"
-                onClick={() => setFilter((f) => ({ ...f, taxOnly: f.taxOnly === 'with_tax' ? '' : 'with_tax' }))}
-                title="Saring hanya transaksi yang memiliki pajak atau biaya admin"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  padding: '5px 12px',
-                  borderRadius: 20,
-                  fontSize: 12.5,
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                  border: filter.taxOnly === 'with_tax' ? '1px solid #D97706' : '1px solid var(--border)',
-                  background: filter.taxOnly === 'with_tax' ? '#FEF3C7' : '#FFFFFF',
-                  color: filter.taxOnly === 'with_tax' ? '#92400E' : 'var(--text-secondary)',
-                  boxShadow: filter.taxOnly === 'with_tax' ? '0 1px 3px rgba(217, 119, 6, 0.2)' : 'none',
-                }}
-              >
-                <span>·ï¸ Ada Pajak/Fee</span>
-                <span
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 700,
-                    background: filter.taxOnly === 'with_tax' ? '#D97706' : '#F1F5F9',
-                    color: filter.taxOnly === 'with_tax' ? '#FFFFFF' : 'var(--text-muted)',
-                    padding: '1px 6px',
-                    borderRadius: 10,
-                  }}
-                >
-                  {transactions.filter((t) => parseFloat(t.tax_amount || 0) > 0).length}
-                </span>
-              </button>
-            </div>
-
-            {/* Right: Results count & Reset */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                Menampilkan <strong>{displayTransactions.length}</strong> dari {transactions.length} transaksi
-              </span>
-              {(filter.type || filter.category_id || filter.wallet_id || filter.search || filter.taxOnly) && (
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-sm"
-                  onClick={() => setFilter({ type: '', category_id: '', wallet_id: '', search: '', taxOnly: '' })}
-                  style={{ padding: '4px 10px', fontSize: 11.5 }}
-                >
-                  ✕ Reset Filter
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Bottom Row: Balanced 3-column Grid for Search + Dompet + Kategori */}
-          <div className="transaction-filter-grid">
+          {/* Responsive Filter Grid: Search + Jenis + Kategori + Dompet */}
+          <div className="transaction-filter-grid" style={{ marginBottom: 12 }}>
             {/* Search Input with Search Icon */}
             <div style={{ position: 'relative' }}>
               <div
@@ -489,7 +395,7 @@ export default function Transactions() {
               </div>
               <input
                 type="text"
-                placeholder="Cari keterangan atau kategori..."
+                placeholder="Cari transaksi atau catatan..."
                 className="form-input"
                 style={{ paddingLeft: 38, width: '100%', height: 38 }}
                 value={filter.search}
@@ -518,19 +424,24 @@ export default function Transactions() {
               )}
             </div>
 
-            {/* Dompet Dropdown */}
+            {/* Jenis Transaksi Dropdown */}
             <select
               className="form-select"
               style={{ width: '100%', height: 38 }}
-              value={filter.wallet_id}
-              onChange={(e) => setFilter((f) => ({ ...f, wallet_id: e.target.value }))}
+              value={filter.taxOnly === 'with_tax' ? 'with_tax' : filter.type}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val === 'with_tax') {
+                  setFilter((f) => ({ ...f, type: '', taxOnly: 'with_tax' }));
+                } else {
+                  setFilter((f) => ({ ...f, type: val, taxOnly: '' }));
+                }
+              }}
             >
-              <option value="">Semua Dompet</option>
-              {wallets.map((w) => (
-                <option key={w.id} value={w.id}>
-                  {w.name}
-                </option>
-              ))}
+              <option value="">Semua Jenis Transaksi</option>
+              <option value="income">🟢 Pemasukan (Income)</option>
+              <option value="expense">🔴 Pengeluaran (Expense)</option>
+              <option value="with_tax">🏷️ Ada Pajak / Fee ({transactions.filter((t) => parseFloat(t.tax_amount || 0) > 0).length})</option>
             </select>
 
             {/* Kategori Dropdown */}
@@ -547,6 +458,49 @@ export default function Transactions() {
                 </option>
               ))}
             </select>
+
+            {/* Dompet Dropdown */}
+            <select
+              className="form-select"
+              style={{ width: '100%', height: 38 }}
+              value={filter.wallet_id}
+              onChange={(e) => setFilter((f) => ({ ...f, wallet_id: e.target.value }))}
+            >
+              <option value="">Semua Dompet</option>
+              {wallets.map((w) => (
+                <option key={w.id} value={w.id}>
+                  {w.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Bottom Summary Bar: Results Count + Reset Button */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: 8,
+              paddingTop: 10,
+              borderTop: '1px solid var(--border-light)',
+            }}
+          >
+            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+              Menampilkan <strong>{displayTransactions.length}</strong> dari {transactions.length} transaksi
+            </div>
+
+            {(filter.type || filter.category_id || filter.wallet_id || filter.search || filter.taxOnly) && (
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => setFilter({ type: '', category_id: '', wallet_id: '', search: '', taxOnly: '' })}
+                style={{ padding: '4px 10px', fontSize: 11.5, display: 'inline-flex', alignItems: 'center', gap: 4 }}
+              >
+                ✕ Reset Filter
+              </button>
+            )}
           </div>
         </div>
 
@@ -722,6 +676,7 @@ export default function Transactions() {
           )}
         </div>
       </div>
+    </div>
 
       {/* Mobile Floating Action Button (FAB) */}
       <button

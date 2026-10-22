@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Navigate, Outlet, NavLink } from 'react-router-dom';
+import { Navigate, Outlet, NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { usePrivacy } from '../context/PrivacyContext';
 import { usePWA } from '../context/PWAContext';
@@ -10,11 +10,11 @@ import { initDailyReminderScheduler } from '../lib/notifications';
 import Logo from './Logo';
 
 const MOBILE_BOTTOM_NAV = [
-  { href: '/dasbor', icon: 'grid_view', label: 'Dasbor' },
-  { href: '/transaksi', icon: 'swap_vert', label: 'Transaksi' },
-  { href: '/dompet', icon: 'account_balance_wallet', label: 'Dompet' },
-  { href: '/anggaran', icon: 'pie_chart', label: 'Anggaran' },
-  { href: '/pengaturan', icon: 'settings', label: 'Setelan' },
+  { href: '/dasbor',     icon: 'home',                   label: 'Dasbor' },
+  { href: '/transaksi',  icon: 'swap_vert',              label: 'Transaksi' },
+  { href: '/dompet',     icon: 'account_balance_wallet', label: 'Dompet' },
+  { href: '/anggaran',   icon: 'pie_chart',              label: 'Anggaran' },
+  { href: '/pengaturan', icon: 'settings',               label: 'Setelan' },
 ];
 
 export default function Layout() {
@@ -22,8 +22,19 @@ export default function Layout() {
   const { isHidden, toggle: togglePrivacy } = usePrivacy();
   const { openInstallModal, isInstalled } = usePWA();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const location = useLocation();
 
-  // Initialize reminder scheduler for device
+  const getActiveIndex = () => {
+    const p = location.pathname;
+    if (p === '/dasbor' || p === '/') return 0;
+    if (p.startsWith('/transaksi')) return 1;
+    if (p.startsWith('/dompet')) return 2;
+    if (p.startsWith('/anggaran')) return 3;
+    if (p.startsWith('/pengaturan')) return 4;
+    return 0;
+  };
+  const activeIndex = getActiveIndex();
+
   useEffect(() => {
     initDailyReminderScheduler();
   }, []);
@@ -31,15 +42,9 @@ export default function Layout() {
   if (loading) {
     return (
       <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        height: '100vh',
-        background: 'var(--bg)',
-        color: 'var(--primary)',
-        fontFamily: 'Inter, sans-serif',
-        fontSize: '16px',
-        fontWeight: '500'
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        height: '100vh', background: 'var(--bg)', color: 'var(--primary)',
+        fontFamily: 'Inter, sans-serif', fontSize: '16px', fontWeight: '500',
       }}>
         <div style={{ textAlign: 'center' }}>
           <Logo size={52} rx={26} style={{ margin: '0 auto 16px', boxShadow: '0 4px 16px rgba(11,23,40,0.25)', borderRadius: 14 }} />
@@ -55,7 +60,7 @@ export default function Layout() {
 
   return (
     <div className="app-layout">
-      {/* Mobile Top Header (Visible only on <= 768px screens) */}
+      {/* Mobile Top Header */}
       <header className="mobile-top-bar">
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <button
@@ -64,43 +69,20 @@ export default function Layout() {
             onClick={() => setMobileSidebarOpen(true)}
             aria-label="Buka Menu Navigasi"
             style={{
-              background: 'transparent',
-              border: 'none',
-              color: 'var(--text-primary)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: 6,
-              borderRadius: 8,
+              background: 'transparent', border: 'none', color: 'var(--text-primary)',
+              cursor: 'pointer', display: 'flex', alignItems: 'center',
+              justifyContent: 'center', padding: 6, borderRadius: 8,
             }}
           >
             <Icon name="menu" size={24} />
           </button>
-
-          <NavLink
-            to="/dasbor"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              textDecoration: 'none',
-            }}
-          >
+          <NavLink to="/dasbor" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
             <Logo size={30} rx={24} style={{ borderRadius: 8, flexShrink: 0 }} />
-            <span
-              style={{
-                fontSize: 15,
-                fontWeight: 800,
-                letterSpacing: '-0.35px',
-                color: 'var(--text-primary)',
-              }}
-            >
+            <span style={{ fontSize: 15, fontWeight: 800, letterSpacing: '-0.35px', color: 'var(--text-primary)' }}>
               Money Management
             </span>
           </NavLink>
         </div>
-
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           {!isInstalled && (
             <button
@@ -108,19 +90,10 @@ export default function Layout() {
               onClick={openInstallModal}
               aria-label="Download Aplikasi"
               style={{
-                background: 'rgba(82, 181, 253, 0.12)',
-                border: '1px solid rgba(82, 181, 253, 0.28)',
-                color: '#0284C7',
-                borderRadius: 8,
-                padding: '5px 9px',
-                fontSize: 12,
-                fontWeight: 700,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 4,
-                cursor: 'pointer',
+                background: 'rgba(82,181,253,0.12)', border: '1px solid rgba(82,181,253,0.28)',
+                color: '#0284C7', borderRadius: 8, padding: '5px 9px', fontSize: 12,
+                fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer',
               }}
-              title="Download Aplikasi"
             >
               <Icon name="download" size={15} />
               <span>Unduh App</span>
@@ -130,62 +103,76 @@ export default function Layout() {
         </div>
       </header>
 
-      {/* Backdrop overlay for mobile drawer */}
+      {/* Mobile sidebar backdrop */}
       {mobileSidebarOpen && (
-        <div
-          className="mobile-sidebar-backdrop"
-          onClick={() => setMobileSidebarOpen(false)}
-          aria-hidden="true"
-        />
+        <div className="mobile-sidebar-backdrop" onClick={() => setMobileSidebarOpen(false)} aria-hidden="true" />
       )}
 
-      {/* Sidebar with mobile open state */}
-      <Sidebar
-        isOpen={mobileSidebarOpen}
-        onClose={() => setMobileSidebarOpen(false)}
-      />
+      <Sidebar isOpen={mobileSidebarOpen} onClose={() => setMobileSidebarOpen(false)} />
 
-      {/* Main Page Area */}
       <main className="main-content">
         <Outlet />
       </main>
 
-      {/* Mobile Bottom Navigation Bar (Visible only on <= 768px screens) */}
+      {/* ── Mobile Bottom Navigation — Curved Notch Magic Navbar ── */}
       <nav className="mobile-bottom-nav" aria-label="Navigasi Bawah Mobile">
-        {MOBILE_BOTTOM_NAV.map((item) => (
-          <NavLink
-            key={item.href}
-            to={item.href}
-            className={({ isActive }) => `mobile-bottom-item ${isActive ? 'active' : ''}`}
-            onClick={() => setMobileSidebarOpen(false)}
+        <div className="bottom-nav-inner">
+          {/* Animated Sliding Indicator with Notch & Floating Circle */}
+          <div
+            className="bottom-nav-indicator-track"
+            style={{
+              transform: `translateX(${activeIndex * 100}%)`,
+            }}
           >
-            {({ isActive }) => (
-              <>
-                <Icon
-                  name={item.icon}
-                  size={20}
-                  style={{
-                    color: isActive ? 'var(--primary)' : 'var(--text-secondary)',
-                    transition: 'transform 0.15s ease',
-                    transform: isActive ? 'scale(1.1)' : 'scale(1)',
-                  }}
+            <div className="bottom-nav-notch-box">
+              {/* SVG curved scoop that cuts smoothly into the navbar */}
+              <svg
+                viewBox="0 0 88 28"
+                className="bottom-nav-notch-svg"
+                preserveAspectRatio="none"
+              >
+                <path
+                  d="M0,0 C20,0 24,24 44,24 C64,24 68,0 88,0 Z"
+                  style={{ fill: 'var(--bg)' }}
                 />
-                <span>{item.label}</span>
-                {isActive && (
-                  <span
-                    style={{
-                      width: 4,
-                      height: 4,
-                      borderRadius: '50%',
-                      background: 'var(--primary)',
-                      marginTop: -1,
-                    }}
-                  />
-                )}
-              </>
-            )}
-          </NavLink>
-        ))}
+                <path
+                  d="M0,0 C20,0 24,24 44,24 C64,24 68,0 88,0"
+                  fill="none"
+                  stroke="var(--border)"
+                  strokeWidth="1.2"
+                />
+              </svg>
+              {/* Floating White Circle with Active Icon */}
+              <div className="bottom-nav-floating-circle">
+                <Icon
+                  key={MOBILE_BOTTOM_NAV[activeIndex]?.icon}
+                  name={MOBILE_BOTTOM_NAV[activeIndex]?.icon}
+                  size={24}
+                  className="bottom-nav-floating-icon"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* 5 Tab Navigation Items */}
+          {MOBILE_BOTTOM_NAV.map((item, idx) => {
+            const isActive = idx === activeIndex;
+            return (
+              <NavLink
+                key={item.href}
+                to={item.href}
+                className={`bottom-nav-item${isActive ? ' active' : ''}`}
+                onClick={() => setMobileSidebarOpen(false)}
+                aria-label={item.label}
+              >
+                <div className="bottom-nav-static-icon">
+                  <Icon name={item.icon} size={22} />
+                </div>
+                <span className="bottom-nav-label">{item.label}</span>
+              </NavLink>
+            );
+          })}
+        </div>
       </nav>
     </div>
   );

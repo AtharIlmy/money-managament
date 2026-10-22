@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { usePrivacy } from '../context/PrivacyContext';
-import { formatRupiah, formatDateShort } from '../lib/utils';
+import { formatRupiah, formatDate, formatDateShort } from '../lib/utils';
 import Icon from '../components/Icon';
 import NotificationButton from '../components/NotificationButton';
 import { notifyTransactionCreated, checkAndSendDailyReminder } from '../lib/notifications';
@@ -305,8 +305,91 @@ export default function Transactions() {
       </div>
 
       <div className="page-content">
-        {/* 4 Summary Stat Cards */}
-        <div className="stat-cards" style={{ marginBottom: 20, gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))' }}>
+        {/* MOBILE ONLY: Page Header (Breadcrumbs + Date + Title + Navy Add Button) */}
+        <div className="tx-mobile-header">
+          <div className="tx-mobile-header-meta">
+            <span className="tx-mobile-breadcrumb">Ruang personal • Transaksi</span>
+            <span className="tx-mobile-date">{formatDate(new Date())}</span>
+          </div>
+          <h1 className="tx-mobile-title">Transaksi</h1>
+          <button
+            type="button"
+            className="tx-mobile-add-btn"
+            onClick={() => {
+              if (wallets.length > 0 && !form.wallet_id) {
+                setForm((f) => ({ ...f, wallet_id: wallets[0].id }));
+              }
+              setShowModal(true);
+            }}
+          >
+            <span style={{ fontSize: 16, lineHeight: 1, fontWeight: 800 }}>+</span>
+            <span>Catat Transaksi</span>
+          </button>
+        </div>
+
+        {/* MOBILE ONLY: Single Summary Card with 4 Rows matching reference */}
+        <div className="tx-mobile-stat-card card">
+          <div className="tx-mobile-stat-row">
+            <div className="tx-mobile-stat-info">
+              <span className="tx-mobile-stat-label">TOTAL PEMASUKAN</span>
+              <span className="tx-mobile-stat-val">
+                {maskAmount(formatRupiah(totalIncome))}
+              </span>
+            </div>
+            <div className="tx-mobile-stat-badge badge-income">
+              + {maskAmount(formatRupiah(totalIncome))}
+            </div>
+          </div>
+
+          <div className="tx-mobile-stat-divider" />
+
+          <div className="tx-mobile-stat-row">
+            <div className="tx-mobile-stat-info">
+              <span className="tx-mobile-stat-label">TOTAL PENGELUARAN</span>
+              <span className="tx-mobile-stat-val">
+                {maskAmount(formatRupiah(totalExpense))}
+              </span>
+            </div>
+            <div className="tx-mobile-stat-badge badge-expense">
+              - {maskAmount(formatRupiah(totalExpense))}
+            </div>
+          </div>
+
+          <div className="tx-mobile-stat-divider" />
+
+          <div
+            className="tx-mobile-stat-row"
+            onClick={() => setFilter((f) => ({ ...f, taxOnly: f.taxOnly === 'with_tax' ? '' : 'with_tax' }))}
+            style={{ cursor: 'pointer' }}
+          >
+            <div className="tx-mobile-stat-info">
+              <span className="tx-mobile-stat-label">PAJAK & BIAYA ADMIN</span>
+              <span className="tx-mobile-stat-val">
+                {maskAmount(formatRupiah(totalTax))}
+              </span>
+            </div>
+            <div className="tx-mobile-stat-badge badge-tax">
+              {transactions.filter((t) => parseFloat(t.tax_amount || 0) > 0).length} transaksi
+            </div>
+          </div>
+
+          <div className="tx-mobile-stat-divider" />
+
+          <div className="tx-mobile-stat-row">
+            <div className="tx-mobile-stat-info">
+              <span className="tx-mobile-stat-label">SELISIH ARUS KAS</span>
+              <span className="tx-mobile-stat-val">
+                {maskAmount(formatRupiah(netBalance))}
+              </span>
+            </div>
+            <div className={`tx-mobile-stat-badge ${netBalance >= 0 ? 'badge-positive' : 'badge-expense'}`}>
+              {netBalance >= 0 ? 'Arus Kas Positif' : 'Arus Kas Negatif'}
+            </div>
+          </div>
+        </div>
+
+        {/* DESKTOP ONLY: 4 Summary Stat Cards */}
+        <div className="stat-cards tx-desktop-stat-cards" style={{ marginBottom: 20, gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))' }}>
           <div className="stat-card">
             <div className="stat-card-label">
               <span>Total Pemasukan</span>
@@ -376,232 +459,234 @@ export default function Transactions() {
         </div>
 
         {/* Filter bar & Tabs */}
-        <div className="card" style={{ marginBottom: 20, padding: '16px 20px', borderRadius: 14 }}>
-          {/* DESKTOP ONLY: Original Tab Buttons + Quick Tax Pill + Result Counter */}
+        {/* Filter bar & Tabs */}
+        <div className="card tx-filter-card" style={{ marginBottom: 20, padding: '16px 18px', borderRadius: 16 }}>
+          {/* Header Row: Daftar transaksi + Result Counter */}
           <div
-            className="tx-filter-desktop-row"
             style={{
+              display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
               flexWrap: 'wrap',
-              gap: 12,
+              gap: 8,
               marginBottom: 14,
             }}
           >
-            {/* Filter Tabs + Quick Tax Pill */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <div className="filter-tabs" style={{ margin: 0 }}>
-                <button
-                  type="button"
-                  className={`filter-tab ${filter.type === '' && filter.taxOnly !== 'with_tax' ? 'active' : ''}`}
-                  onClick={() => setFilter((f) => ({ ...f, type: '', taxOnly: '' }))}
-                >
-                  Semua Transaksi
-                </button>
-                <button
-                  type="button"
-                  className={`filter-tab ${filter.type === 'income' ? 'active' : ''}`}
-                  onClick={() => setFilter((f) => ({ ...f, type: 'income', taxOnly: '' }))}
-                >
-                  Pemasukan
-                </button>
-                <button
-                  type="button"
-                  className={`filter-tab ${filter.type === 'expense' ? 'active' : ''}`}
-                  onClick={() => setFilter((f) => ({ ...f, type: 'expense', taxOnly: '' }))}
-                >
-                  Pengeluaran
-                </button>
-              </div>
-
-              {/* Quick Tax Pill */}
-              <button
-                type="button"
-                onClick={() => setFilter((f) => ({ ...f, taxOnly: f.taxOnly === 'with_tax' ? '' : 'with_tax' }))}
-                title="Saring hanya transaksi yang memiliki pajak atau biaya admin"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  padding: '5px 12px',
-                  borderRadius: 20,
-                  fontSize: 12.5,
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                  border: filter.taxOnly === 'with_tax' ? '1px solid #D97706' : '1px solid var(--border)',
-                  background: filter.taxOnly === 'with_tax' ? '#FEF3C7' : '#FFFFFF',
-                  color: filter.taxOnly === 'with_tax' ? '#92400E' : 'var(--text-secondary)',
-                  boxShadow: filter.taxOnly === 'with_tax' ? '0 1px 3px rgba(217, 119, 6, 0.2)' : 'none',
-                }}
-              >
-                <span>🏷️ Ada Pajak/Fee</span>
-                <span
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 700,
-                    background: filter.taxOnly === 'with_tax' ? '#D97706' : '#F1F5F9',
-                    color: filter.taxOnly === 'with_tax' ? '#FFFFFF' : 'var(--text-muted)',
-                    padding: '1px 6px',
-                    borderRadius: 10,
-                  }}
-                >
-                  {transactions.filter((t) => parseFloat(t.tax_amount || 0) > 0).length}
-                </span>
-              </button>
-            </div>
-
-            {/* Right: Results count & Reset */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <h2 style={{ fontSize: 16, fontWeight: 800, margin: 0, color: 'var(--text-primary)' }}>
+              Daftar transaksi
+            </h2>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                Menampilkan <strong>{displayTransactions.length}</strong> dari {transactions.length} transaksi
+                Menampilkan {displayTransactions.length} dari {transactions.length} transaksi
               </span>
               {(filter.type || filter.category_id || filter.wallet_id || filter.search || filter.taxOnly) && (
                 <button
                   type="button"
                   className="btn btn-secondary btn-sm"
                   onClick={() => setFilter({ type: '', category_id: '', wallet_id: '', search: '', taxOnly: '' })}
-                  style={{ padding: '4px 10px', fontSize: 11.5 }}
+                  style={{ padding: '3px 8px', fontSize: 11 }}
                 >
-                  ✕ Reset Filter
+                  ✕ Reset
                 </button>
               )}
             </div>
           </div>
 
-          {/* Search + Dropdowns Grid */}
-          <div className="transaction-filter-grid">
-            {/* Search Input with Search Icon */}
-            <div style={{ position: 'relative' }}>
-              <div
-                style={{
-                  position: 'absolute',
-                  left: 12,
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  color: 'var(--text-muted)',
-                  pointerEvents: 'none',
-                }}
-              >
-                <Icon name="search" size={17} />
-              </div>
-              <input
-                type="text"
-                placeholder="Cari transaksi atau catatan..."
-                className="form-input"
-                style={{ paddingLeft: 38, width: '100%', height: 38 }}
-                value={filter.search}
-                onChange={(e) => setFilter((f) => ({ ...f, search: e.target.value }))}
-              />
-              {filter.search && (
-                <button
-                  type="button"
-                  onClick={() => setFilter((f) => ({ ...f, search: '' }))}
-                  style={{
-                    position: 'absolute',
-                    right: 10,
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    background: 'none',
-                    border: 'none',
-                    color: 'var(--text-muted)',
-                    cursor: 'pointer',
-                    fontSize: 14,
-                    padding: 4,
-                  }}
-                  title="Hapus pencarian"
-                >
-                  ✕
-                </button>
-              )}
-            </div>
-
-            {/* MOBILE ONLY: Dropdown Jenis Transaksi */}
-            <div className="tx-filter-mobile-select">
-              <select
-                className="form-select"
-                style={{ width: '100%', height: 38 }}
-                value={filter.taxOnly === 'with_tax' ? 'with_tax' : filter.type}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  if (val === 'with_tax') {
-                    setFilter((f) => ({ ...f, type: '', taxOnly: 'with_tax' }));
-                  } else {
-                    setFilter((f) => ({ ...f, type: val, taxOnly: '' }));
-                  }
-                }}
-              >
-                <option value="">Semua Jenis Transaksi</option>
-                <option value="income">🟢 Pemasukan (Income)</option>
-                <option value="expense">🔴 Pengeluaran (Expense)</option>
-                <option value="with_tax">🏷️ Ada Pajak / Fee ({transactions.filter((t) => parseFloat(t.tax_amount || 0) > 0).length})</option>
-              </select>
-            </div>
-
-            {/* Dompet Dropdown */}
-            <select
-              className="form-select"
-              style={{ width: '100%', height: 38 }}
-              value={filter.wallet_id}
-              onChange={(e) => setFilter((f) => ({ ...f, wallet_id: e.target.value }))}
+          {/* Search Input with Search Icon */}
+          <div style={{ position: 'relative', marginBottom: 12 }}>
+            <div
+              style={{
+                position: 'absolute',
+                left: 12,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                display: 'flex',
+                alignItems: 'center',
+                color: 'var(--text-muted)',
+                pointerEvents: 'none',
+              }}
             >
-              <option value="">Semua Dompet</option>
-              {wallets.map((w) => (
-                <option key={w.id} value={w.id}>
-                  {w.name}
-                </option>
-              ))}
-            </select>
-
-            {/* Kategori Dropdown */}
-            <select
-              className="form-select"
-              style={{ width: '100%', height: 38 }}
-              value={filter.category_id}
-              onChange={(e) => setFilter((f) => ({ ...f, category_id: e.target.value }))}
-            >
-              <option value="">Semua Kategori</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.icon} {c.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* MOBILE ONLY: Results count & Reset Bar */}
-          <div
-            className="tx-filter-mobile-footer"
-            style={{
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              flexWrap: 'wrap',
-              gap: 8,
-              marginTop: 10,
-              paddingTop: 10,
-              borderTop: '1px solid var(--border-light)',
-            }}
-          >
-            <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-              Menampilkan <strong>{displayTransactions.length}</strong> dari {transactions.length} transaksi
-            </span>
-            {(filter.type || filter.category_id || filter.wallet_id || filter.search || filter.taxOnly) && (
+              <Icon name="search" size={18} />
+            </div>
+            <input
+              type="text"
+              placeholder="Cari keterangan atau kategori..."
+              className="form-input"
+              style={{ paddingLeft: 38, width: '100%', height: 42, borderRadius: 10, fontSize: 13.5 }}
+              value={filter.search}
+              onChange={(e) => setFilter((f) => ({ ...f, search: e.target.value }))}
+            />
+            {filter.search && (
               <button
                 type="button"
-                className="btn btn-secondary btn-sm"
-                onClick={() => setFilter({ type: '', category_id: '', wallet_id: '', search: '', taxOnly: '' })}
-                style={{ padding: '4px 10px', fontSize: 11.5 }}
+                onClick={() => setFilter((f) => ({ ...f, search: '' }))}
+                style={{
+                  position: 'absolute',
+                  right: 10,
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--text-muted)',
+                  cursor: 'pointer',
+                  fontSize: 14,
+                  padding: 4,
+                }}
+                title="Hapus pencarian"
               >
-                ✕ Reset Filter
+                ✕
               </button>
             )}
           </div>
+
+          {/* Filter Pills: Semua Transaksi, Pemasukan, Pengeluaran, Ada Pajak/Fee */}
+          <div className="tx-pills-row" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
+            <button
+              type="button"
+              className={`tx-pill ${filter.type === '' && filter.taxOnly !== 'with_tax' ? 'active' : ''}`}
+              onClick={() => setFilter((f) => ({ ...f, type: '', taxOnly: '' }))}
+            >
+              Semua Transaksi
+            </button>
+            <button
+              type="button"
+              className={`tx-pill ${filter.type === 'income' ? 'active' : ''}`}
+              onClick={() => setFilter((f) => ({ ...f, type: 'income', taxOnly: '' }))}
+            >
+              Pemasukan
+            </button>
+            <button
+              type="button"
+              className={`tx-pill ${filter.type === 'expense' ? 'active' : ''}`}
+              onClick={() => setFilter((f) => ({ ...f, type: 'expense', taxOnly: '' }))}
+            >
+              Pengeluaran
+            </button>
+            <button
+              type="button"
+              className={`tx-pill ${filter.taxOnly === 'with_tax' ? 'active' : ''}`}
+              onClick={() => setFilter((f) => ({ ...f, taxOnly: f.taxOnly === 'with_tax' ? '' : 'with_tax' }))}
+            >
+              Ada Pajak/Fee {transactions.filter((t) => parseFloat(t.tax_amount || 0) > 0).length}
+            </button>
+          </div>
+
+          {/* Dropdowns: Semua Dompet & Semua Kategori */}
+          <div className="tx-dropdowns-row" style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            {/* Dompet Dropdown */}
+            <div style={{ flex: 1, minWidth: 150 }}>
+              <select
+                className="form-select tx-filter-select"
+                style={{ width: '100%', height: 40, borderRadius: 10, fontSize: 13 }}
+                value={filter.wallet_id}
+                onChange={(e) => setFilter((f) => ({ ...f, wallet_id: e.target.value }))}
+              >
+                <option value="">Semua Dompet</option>
+                {wallets.map((w) => (
+                  <option key={w.id} value={w.id}>
+                    {w.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Kategori Dropdown */}
+            <div style={{ flex: 1, minWidth: 150 }}>
+              <select
+                className="form-select tx-filter-select"
+                style={{ width: '100%', height: 40, borderRadius: 10, fontSize: 13 }}
+                value={filter.category_id}
+                onChange={(e) => setFilter((f) => ({ ...f, category_id: e.target.value }))}
+              >
+                <option value="">Semua Kategori</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.icon} {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
         </div>
 
-        {/* Table Card */}
-        <div className="card">
+        {/* MOBILE ONLY: Transaction Cards List matching reference image */}
+        <div className="tx-mobile-list">
+          {loading ? (
+            <div className="loading" style={{ padding: 40 }}>
+              <div className="spinner" />
+            </div>
+          ) : displayTransactions.length > 0 ? (
+            displayTransactions.map((tx) => {
+              const isIncome = tx.type === 'income';
+              const rawAmount = parseFloat(tx.amount || 0);
+
+              return (
+                <div key={tx.id} className="tx-mobile-card">
+                  {/* Top Row: Description + Category on left, Amount on right */}
+                  <div className="tx-mobile-card-top">
+                    <div style={{ minWidth: 0, flex: 1, paddingRight: 10 }}>
+                      <div className="tx-mobile-card-title">
+                        {tx.description || tx.category_name || 'Transaksi'}
+                      </div>
+                      <div className="tx-mobile-card-cat">
+                        {tx.category_name || (isIncome ? 'Pemasukan' : 'Pengeluaran')}
+                      </div>
+                    </div>
+                    <div className={`tx-mobile-card-amount ${isIncome ? 'income' : 'expense'}`}>
+                      {isIncome ? '+ ' : '- '}{maskAmount(formatRupiah(rawAmount))}
+                    </div>
+                  </div>
+
+                  {/* Middle Row: Wallet on left, Date on right */}
+                  <div className="tx-mobile-card-middle">
+                    <div>
+                      <span className="tx-mobile-card-sublabel">Dompet</span>
+                      <div className="tx-mobile-card-wallet">
+                        {tx.wallet_name || 'Rekening Utama'}
+                      </div>
+                    </div>
+                    <div className="tx-mobile-card-date">
+                      {formatDateShort(tx.date)}
+                    </div>
+                  </div>
+
+                  {/* Bottom Row: Edit and Hapus Action Buttons */}
+                  <div className="tx-mobile-card-actions">
+                    <button
+                      type="button"
+                      className="tx-mobile-card-btn"
+                      onClick={() => handleOpenEdit(tx)}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      className="tx-mobile-card-btn"
+                      onClick={() => handleDelete(tx.id)}
+                    >
+                      Hapus
+                    </button>
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            <div className="card" style={{ padding: '36px 20px', textAlign: 'center', borderRadius: 16 }}>
+              <div style={{ color: 'var(--text-muted)', marginBottom: 12 }}>
+                <Icon name="description" size={44} />
+              </div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6 }}>
+                Belum ada riwayat transaksi
+              </div>
+              <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+                Tekan tombol "+ Catat Transaksi" untuk memasukkan catatan baru
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* DESKTOP ONLY: Table Card */}
+        <div className="card tx-desktop-table-card">
           {loading ? (
             <div className="loading">
               <div className="spinner" />
@@ -648,7 +733,7 @@ export default function Transactions() {
                                     borderRadius: 4,
                                     border: '1px solid #FDE68A',
                                   }}>
-                                    ·ï¸ Ada Pajak/Admin Fee
+                                    Ada Pajak/Admin Fee
                                   </span>
                                 )}
                               </div>
@@ -682,7 +767,7 @@ export default function Transactions() {
                               <span style={{ color: 'var(--text-muted)' }}>
                                 Pokok: <strong>{maskAmount(formatRupiah(baseVal))}</strong>
                               </span>
-                              <span style={{ color: 'var(--border)' }}>â€¢</span>
+                              <span style={{ color: 'var(--border)' }}>•</span>
                               <span style={{ color: '#D97706', fontWeight: 700, background: '#FFFBEB', padding: '1px 5px', borderRadius: 4, border: '1px solid #FDE68A' }}>
                                 Pajak/Fee: +{maskAmount(formatRupiah(taxVal))}
                               </span>
@@ -707,16 +792,6 @@ export default function Transactions() {
                                 cursor: 'pointer',
                                 transition: 'all 0.15s ease',
                               }}
-                              onMouseOver={(e) => {
-                                e.currentTarget.style.color = 'var(--primary)';
-                                e.currentTarget.style.borderColor = 'var(--primary)';
-                                e.currentTarget.style.background = 'var(--bg-card2)';
-                              }}
-                              onMouseOut={(e) => {
-                                e.currentTarget.style.color = 'var(--text-secondary)';
-                                e.currentTarget.style.borderColor = 'var(--border)';
-                                e.currentTarget.style.background = 'transparent';
-                              }}
                               title="Edit Transaksi"
                             >
                               <Icon name="edit" size={15} />
@@ -736,16 +811,6 @@ export default function Transactions() {
                                 justifyContent: 'center',
                                 cursor: 'pointer',
                                 transition: 'all 0.15s ease',
-                              }}
-                              onMouseOver={(e) => {
-                                e.currentTarget.style.color = 'var(--danger)';
-                                e.currentTarget.style.borderColor = 'var(--danger)';
-                                e.currentTarget.style.background = '#FEE2E2';
-                              }}
-                              onMouseOut={(e) => {
-                                e.currentTarget.style.color = 'var(--text-muted)';
-                                e.currentTarget.style.borderColor = 'var(--border)';
-                                e.currentTarget.style.background = 'transparent';
                               }}
                               title="Hapus Transaksi"
                             >
@@ -772,23 +837,6 @@ export default function Transactions() {
           )}
         </div>
       </div>
-
-      {/* Mobile Floating Action Button (FAB) */}
-      <button
-        type="button"
-        id="mobile-add-tx-btn"
-        className="mobile-fab-btn"
-        onClick={() => {
-          if (wallets.length > 0 && !form.wallet_id) {
-            setForm((f) => ({ ...f, wallet_id: wallets[0].id }));
-          }
-          setShowModal(true);
-        }}
-        aria-label="Catat Transaksi Baru"
-      >
-        <Icon name="add" size={20} />
-        <span>Catat Transaksi</span>
-      </button>
 
       {/* Modal Catat Transaksi — Sesuai Tema Website */}
       {showModal && (

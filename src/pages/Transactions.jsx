@@ -373,6 +373,8 @@ export default function Transactions() {
               {netBalance >= 0 ? '✓ Arus Kas Positif' : '✕ Arus Kas Negatif'}
             </div>
           </div>
+        </div>
+
         {/* Filter bar & Tabs */}
         <div className="card" style={{ marginBottom: 20, padding: '16px 20px', borderRadius: 14 }}>
           {/* DESKTOP ONLY: Original Tab Buttons + Quick Tax Pill + Result Counter */}

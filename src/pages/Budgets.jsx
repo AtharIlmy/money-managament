@@ -285,7 +285,7 @@ export default function Budgets() {
 
         {/* Section 1: Budgets per Category (Grid of Cards) */}
         <div style={{ marginBottom: 32 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <div className="budget-section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
             <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>
               Anggaran per Kategori
             </h3>

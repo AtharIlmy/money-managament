@@ -420,7 +420,7 @@ export default function Help() {
               </div>
 
               {/* Category Pills */}
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 18 }}>
+              <div className="help-category-pills" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 18 }}>
                 {CATEGORIES.map((cat) => (
                   <button
                     key={cat.id}

@@ -328,7 +328,7 @@ export default function EmergencyFund() {
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
+            <div className="ef-tips-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
               {/* Panduan bulan */}
               <div className="card" style={{ padding: 20 }}>
                 <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-primary)', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>

@@ -451,7 +451,7 @@ export default function Savings() {
             <form onSubmit={handleCreateGoal}>
               <div className="form-group">
                 <label className="form-label">Kategori Tabungan</label>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+                <div className="savings-category-grid">
                   {GOAL_CATEGORIES.map((cat) => (
                     <button
                       key={cat.label}

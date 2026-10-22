@@ -182,7 +182,7 @@ export default function Reports() {
         </div>
 
         {/* 5 Summary Stat Cards */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 24 }}>
+        <div className="reports-stat-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 24 }}>
           <div className="stat-card">
             <div className="stat-card-label">
               <span>Total Pemasukan</span>

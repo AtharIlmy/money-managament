@@ -562,54 +562,57 @@ export default function Settings() {
 
         {/* Tab Navigation & Content Grid */}
         <div className="settings-layout-grid" style={{ gap: 24, alignItems: 'start' }}>
-          {/* Side Tabs */}
+          {/* Side Tabs - Desktop sidebar / Mobile horizontal scroll */}
           <div className="card" style={{ padding: '12px 10px', borderRadius: 16 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', padding: '8px 12px 10px', letterSpacing: '0.06em' }}>
               Menu Pengaturan
             </div>
-            {TABS.map((tab) => {
-              const isActive = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => setActiveTab(tab.id)}
-                  style={{
-                    width: '100%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 12,
-                    padding: '11px 14px',
-                    borderRadius: 10,
-                    border: 'none',
-                    background: isActive ? 'var(--primary-50)' : 'transparent',
-                    color: isActive ? 'var(--primary)' : 'var(--text-secondary)',
-                    fontWeight: isActive ? 700 : 500,
-                    fontSize: 13,
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    transition: 'all 0.15s ease',
-                    marginBottom: 4,
-                  }}
-                  onMouseOver={(e) => {
-                    if (!isActive) e.currentTarget.style.background = '#F8FAFC';
-                  }}
-                  onMouseOut={(e) => {
-                    if (!isActive) e.currentTarget.style.background = 'transparent';
-                  }}
-                >
-                  <Icon
-                    name={tab.icon}
-                    size={18}
-                    style={{ color: isActive ? 'var(--primary)' : 'var(--text-muted)' }}
-                  />
-                  <span>{tab.label}</span>
-                  {isActive && (
-                    <span style={{ marginLeft: 'auto', width: 6, height: 6, borderRadius: '50%', background: 'var(--primary)' }} />
-                  )}
-                </button>
-              );
-            })}
+            {/* Mobile: horizontal scrollable tab row */}
+            <div className="settings-tab-nav">
+              {TABS.map((tab) => {
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setActiveTab(tab.id)}
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 12,
+                      padding: '11px 14px',
+                      borderRadius: 10,
+                      border: 'none',
+                      background: isActive ? 'var(--primary-50)' : 'transparent',
+                      color: isActive ? 'var(--primary)' : 'var(--text-secondary)',
+                      fontWeight: isActive ? 700 : 500,
+                      fontSize: 13,
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      transition: 'all 0.15s ease',
+                      marginBottom: 4,
+                    }}
+                    onMouseOver={(e) => {
+                      if (!isActive) e.currentTarget.style.background = '#F8FAFC';
+                    }}
+                    onMouseOut={(e) => {
+                      if (!isActive) e.currentTarget.style.background = 'transparent';
+                    }}
+                  >
+                    <Icon
+                      name={tab.icon}
+                      size={18}
+                      style={{ color: isActive ? 'var(--primary)' : 'var(--text-muted)' }}
+                    />
+                    <span>{tab.label}</span>
+                    {isActive && (
+                      <span style={{ marginLeft: 'auto', width: 6, height: 6, borderRadius: '50%', background: 'var(--primary)' }} />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* Tab Content Panel */}

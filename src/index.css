@@ -1069,9 +1069,21 @@ input, select, textarea { font-family: 'Plus Jakarta Sans', sans-serif; outline:
   gap: 14px;
 }
 
+.tx-filter-desktop-row {
+  display: flex !important;
+}
+
+.tx-filter-mobile-select {
+  display: none !important;
+}
+
+.tx-filter-mobile-footer {
+  display: none !important;
+}
+
 .transaction-filter-grid {
   display: grid;
-  grid-template-columns: 1.5fr 1fr 1fr 1fr;
+  grid-template-columns: 1.5fr 1fr 1fr;
   gap: 12px;
   align-items: center;
 }
@@ -1087,7 +1099,7 @@ input, select, textarea { font-family: 'Plus Jakarta Sans', sans-serif; outline:
     grid-template-columns: 1fr !important;
   }
   .transaction-filter-grid {
-    grid-template-columns: 1fr 1fr !important;
+    grid-template-columns: 1.5fr 1fr 1fr !important;
   }
 }
 
@@ -1423,6 +1435,19 @@ input, select, textarea { font-family: 'Plus Jakarta Sans', sans-serif; outline:
     grid-template-columns: 1fr !important;
   }
 
+  /* Mobile: Hide desktop tabs and show mobile dropdown */
+  .tx-filter-desktop-row {
+    display: none !important;
+  }
+
+  .tx-filter-mobile-select {
+    display: block !important;
+  }
+
+  .tx-filter-mobile-footer {
+    display: flex !important;
+  }
+
   /* Responsive Filter tabs */
   .filter-tabs {
     max-width: 100%;
@@ -1485,6 +1510,233 @@ input, select, textarea { font-family: 'Plus Jakarta Sans', sans-serif; outline:
   }
 }
 
+
+/* =========================================
+   PAGE-SPECIFIC LAYOUT GRID DEFINITIONS
+   ========================================= */
+
+/* Settings & Help: sidebar + main 2-column layout */
+.settings-layout-grid,
+.help-layout-grid {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+/* Reports & Savings: month filter bar mobile */
+.reports-month-filter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* Bills: responsive table card list for mobile */
+.bill-mobile-card {
+  display: none;
+}
+
+/* Savings goal category grid */
+.savings-category-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+/* EmergencyFund: month option cards */
+.ef-month-options {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+/* Settings: vertical tabs on desktop */
+.settings-tab-nav {
+  display: flex;
+  flex-direction: column;
+}
+
+.settings-tab-select {
+  display: none;
+}
+
+/* =========================================
+   RESPONSIVE OVERRIDES FOR ALL PAGES
+   ========================================= */
+
+@media (max-width: 1024px) {
+  .settings-layout-grid,
+  .help-layout-grid {
+    grid-template-columns: 200px 1fr;
+  }
+
+  .ef-month-options {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .savings-category-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  /* Settings & Help: stack vertically */
+  .settings-layout-grid,
+  .help-layout-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Settings: hide vertical tabs, show horizontal scrollable tabs */
+  .settings-tab-nav {
+    flex-direction: row;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    gap: 4px;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+  }
+
+  .settings-tab-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .settings-tab-nav button {
+    flex-shrink: 0;
+    white-space: nowrap;
+    min-width: unset !important;
+    width: auto !important;
+    padding: 8px 14px !important;
+    border-radius: 20px !important;
+    font-size: 12px !important;
+    gap: 6px !important;
+    margin-bottom: 0 !important;
+  }
+
+  /* Reports: month/year filter mobile */
+  .reports-month-filter {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .reports-month-filter select {
+    width: 100% !important;
+  }
+
+  /* Bills: show card view, hide table on small screens */
+  .bills-table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Savings: category grid 2 columns on mobile */
+  .savings-category-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  /* EmergencyFund: month options 2x2 on mobile */
+  .ef-month-options {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  /* Reports: grid-2-1 → single column on mobile */
+  .grid-2-1 {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* grid-2 and grid-3 → single column on mobile */
+  .grid-2,
+  .grid-3 {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Help: category pills horizontal scroll */
+  .help-category-pills {
+    overflow-x: auto;
+    flex-wrap: nowrap !important;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+  }
+
+  .help-category-pills::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Budget section header buttons stack */
+  .budget-section-header {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 10px;
+  }
+
+  /* Topbar buttons in bills/budgets pages - stack on mobile */
+  .topbar-right .btn + .btn {
+    margin-left: 6px;
+  }
+
+  /* Budgets: action buttons in topbar wrap */
+  .topbar-right {
+    gap: 8px !important;
+  }
+
+  /* Budget topbar: hide extra buttons, rely on banner CTA */
+  .topbar-budget-actions {
+    display: none !important;
+  }
+
+  /* EmergencyFund: tips grid */
+  .ef-tips-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Savings: goal stat display */
+  .savings-stat-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Settings tabs: even more compact */
+  .settings-tab-nav button {
+    padding: 7px 11px !important;
+    font-size: 11px !important;
+  }
+
+  /* Savings category grid: 2 columns */
+  .savings-category-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 6px !important;
+  }
+
+  /* EmergencyFund: 1 column for very small screens */
+  .ef-month-options {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  /* Bills table: must scroll horizontally */
+  .bills-table-wrapper .data-table {
+    min-width: 480px;
+  }
+
+  /* Help FAQ text size */
+  .help-faq-answer {
+    font-size: 13px;
+  }
+
+  /* Reports summary cards: 2 columns */
+  .reports-stat-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+  }
+
+  /* Budgets: card padding smaller */
+  .budget-goal-card {
+    padding: 14px !important;
+  }
+}
 
 /* =========================================
    DARK THEME SPECIFIC COMPONENT OVERRIDES

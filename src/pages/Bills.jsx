@@ -246,7 +246,7 @@ export default function Bills() {
               Memuat daftar tagihan...
             </div>
           ) : bills.length > 0 ? (
-            <div style={{ overflowX: 'auto' }}>
+            <div className="bills-table-wrapper">
               <table className="data-table">
                 <thead>
                   <tr>

@@ -772,7 +772,6 @@ export default function Transactions() {
           )}
         </div>
       </div>
-    </div>
 
       {/* Mobile Floating Action Button (FAB) */}
       <button

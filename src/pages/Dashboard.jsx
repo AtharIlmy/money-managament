@@ -841,7 +841,8 @@ export default function Dashboard() {
             </Link>
           </div>
 
-          <div style={{ overflowX: 'auto' }}>
+          {/* Desktop Table View */}
+          <div className="dashboard-desktop-tx-table" style={{ overflowX: 'auto' }}>
             <table className="data-table">
               <thead>
                 <tr>
@@ -936,6 +937,87 @@ export default function Dashboard() {
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile Card Rows (Visible on <= 768px) */}
+          <div className="dashboard-mobile-tx-list">
+            {txList.length === 0 ? (
+              <div style={{ padding: '24px 16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: 12.5 }}>
+                <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 36, height: 36, borderRadius: '50%', background: 'var(--bg)', marginBottom: 8 }}>
+                  <Icon name="receipt_long" size={20} style={{ color: 'var(--text-muted)' }} />
+                </div>
+                <div style={{ fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 4 }}>Belum ada transaksi</div>
+                <Link to="/transaksi" style={{ color: 'var(--primary)', fontWeight: 700, fontSize: 12 }}>
+                  + Tambah Transaksi
+                </Link>
+              </div>
+            ) : (
+              txList.slice(0, 5).map((tx) => {
+                const isIncome = tx.type === 'income';
+                return (
+                  <div
+                    key={`mob-${tx.id}`}
+                    className="dashboard-mobile-tx-item"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '12px 16px',
+                      borderBottom: '1px solid var(--border-light)',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 11, minWidth: 0, flex: 1 }}>
+                      <div
+                        style={{
+                          width: 38,
+                          height: 38,
+                          borderRadius: 10,
+                          background: isIncome ? '#ECFDF5' : '#FEF2F2',
+                          color: isIncome ? '#059669' : '#DC2626',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0,
+                          fontSize: 16,
+                        }}
+                      >
+                        <Icon name={tx.category_icon || (isIncome ? 'south_west' : 'north_east')} size={18} />
+                      </div>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {tx.description}
+                        </div>
+                        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span>{formatDateShort(tx.date)}</span>
+                          <span>•</span>
+                          <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{tx.category_name}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: 10 }}>
+                      <div style={{ fontWeight: 800, fontSize: 13.5, color: isIncome ? 'var(--income-color)' : 'var(--text-primary)' }}>
+                        {isIncome ? '+' : '-'}{formatRupiah(tx.amount)}
+                      </div>
+                      <span
+                        style={{
+                          fontSize: 10,
+                          fontWeight: 700,
+                          padding: '1.5px 6px',
+                          borderRadius: 4,
+                          background: isIncome ? '#ECFDF5' : '#F1F5F9',
+                          color: isIncome ? '#059669' : 'var(--text-secondary)',
+                          display: 'inline-block',
+                          marginTop: 2,
+                        }}
+                      >
+                        {isIncome ? 'Masuk' : 'Keluar'}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
 
           {/* Table Footer */}

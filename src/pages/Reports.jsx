@@ -143,6 +143,38 @@ export default function Reports() {
       </div>
 
       <div className="page-content">
+        {/* Mobile / Small Screen Filter Toolbar */}
+        <div className="reports-mobile-filter-bar card" style={{ padding: '12px 14px', marginBottom: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>
+              <Icon name="calendar_today" size={16} color="var(--primary)" />
+              <span>Pilih Periode:</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: '1 1 220px', justifyContent: 'flex-end' }}>
+              <select
+                className="form-select"
+                style={{ flex: 1, minWidth: 120, padding: '7px 28px 7px 10px', fontSize: 13 }}
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+              >
+                {MONTH_NAMES.map((name, i) => (
+                  <option key={i} value={i + 1}>{name}</option>
+                ))}
+              </select>
+              <select
+                className="form-select"
+                style={{ width: 90, padding: '7px 28px 7px 10px', fontSize: 13 }}
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+              >
+                {[selectedYear - 1, selectedYear, selectedYear + 1].map((y) => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+
         {/* Signature Biru Dongker Hero Banner (Matching Arus Mockup) */}
         <div className="navy-banner">
           <div className="navy-banner-left">

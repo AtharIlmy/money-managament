@@ -215,6 +215,34 @@ export default function EmergencyFund() {
                       </span>
                     )}
                   </div>
+
+                  <div style={{ marginTop: 14 }}>
+                    <button
+                      type="button"
+                      id="setup-ef-btn-hero"
+                      onClick={handleOpenSetup}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 7,
+                        padding: '8px 16px',
+                        background: 'rgba(255,255,255,0.15)',
+                        border: '1px solid rgba(255,255,255,0.3)',
+                        borderRadius: 10,
+                        color: '#FFFFFF',
+                        fontSize: 12.5,
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        backdropFilter: 'blur(10px)',
+                        transition: 'all 0.15s ease',
+                      }}
+                      onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.25)'; }}
+                      onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.15)'; }}
+                    >
+                      <Icon name="tune" size={15} />
+                      <span>Atur Target Dana Darurat</span>
+                    </button>
+                  </div>
                 </div>
 
                 {/* Circular progress */}

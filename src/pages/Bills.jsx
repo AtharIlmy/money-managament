@@ -246,7 +246,8 @@ export default function Bills() {
               Memuat daftar tagihan...
             </div>
           ) : bills.length > 0 ? (
-            <div className="bills-table-wrapper">
+            <>
+              <div className="bills-table-wrapper">
               <table className="data-table">
                 <thead>
                   <tr>
@@ -346,7 +347,90 @@ export default function Bills() {
                 </tbody>
               </table>
             </div>
-          ) : (
+
+            {/* Mobile Card List (Visible on screens <= 768px) */}
+            <div className="bills-mobile-cards">
+              {bills.map((bill) => (
+                <div key={`mob-${bill.id}`} className="bill-mobile-card">
+                  {/* Top: Service info and Nominal */}
+                  <div className="bill-mobile-top">
+                    <div className="bill-mobile-info">
+                      <div className="bill-mobile-icon-box">
+                        {bill.icon || <Icon name="receipt_long" size={20} color="var(--primary)" />}
+                      </div>
+                      <div style={{ minWidth: 0 }}>
+                        <div className="bill-mobile-name">{bill.name}</div>
+                        <div className="bill-mobile-category">{bill.category}</div>
+                      </div>
+                    </div>
+                    <div className="bill-mobile-amount">
+                      {formatRupiah(bill.amount)}
+                    </div>
+                  </div>
+
+                  {/* Middle: Due date & Status */}
+                  <div className="bill-mobile-meta">
+                    <div className="bill-mobile-due">
+                      <Icon name="calendar_today" size={13} style={{ color: 'var(--text-muted)' }} />
+                      <span>Tgl {bill.due_day} setiap bulan</span>
+                      <span className="bill-mobile-subdue">
+                        ({bill.is_paid
+                          ? 'Lunas'
+                          : bill.daysUntilDue > 0
+                          ? `${bill.daysUntilDue} hari lagi`
+                          : bill.daysUntilDue === 0
+                          ? 'Hari ini!'
+                          : 'Terlambat'})
+                      </span>
+                    </div>
+
+                    <div>
+                      {bill.is_paid ? (
+                        <span className="badge badge-income" style={{ fontSize: 11 }}>✓ Lunas</span>
+                      ) : bill.status === 'overdue' ? (
+                        <span className="badge badge-expense" style={{ fontSize: 11 }}>Terlambat</span>
+                      ) : bill.status === 'due_today' ? (
+                        <span className="badge" style={{ background: '#FEF3C7', color: '#B45309', fontSize: 11 }}>Jatuh Tempo</span>
+                      ) : (
+                        <span className="badge" style={{ background: '#E0E7FF', color: '#3730A3', fontSize: 11 }}>Menunggu</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Bottom: Action buttons */}
+                  <div className="bill-mobile-actions">
+                    {!bill.is_paid ? (
+                      <button
+                        type="button"
+                        className="btn btn-primary btn-sm bill-mobile-pay-btn"
+                        onClick={() => {
+                          setSelectedBill(bill);
+                          setPayWalletId(bill.wallet_id || wallets[0]?.id || '');
+                          setShowPayModal(true);
+                        }}
+                      >
+                        <Icon name="payment" size={15} />
+                        <span>Bayar Tagihan</span>
+                      </button>
+                    ) : (
+                      <div className="bill-mobile-paid-tag">
+                        ✓ Sudah dibayar bulan ini
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteBill(bill.id)}
+                      className="bill-mobile-del-btn"
+                      title="Hapus Tagihan"
+                    >
+                      <Icon name="delete" size={16} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        ) : (
             <div className="empty-state">
               <div className="empty-state-icon"><Icon name="notifications" size={40} /></div>
               <div className="empty-state-title">Belum ada tagihan rutin</div>

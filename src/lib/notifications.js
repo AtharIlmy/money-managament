@@ -1,5 +1,137 @@
-// Utility for Web Push Notifications & Mobile Device Alerts
+// Utility for In-App Notifications & Mobile Lock Screen Push Alerts
 import { formatRupiah } from './utils';
+
+export const NOTIF_STORAGE_KEY = 'money_in_app_notifications_v1';
+
+export const DEFAULT_IN_APP_NOTIFICATIONS = [
+  {
+    id: 'sample-welcome',
+    icon: 'notifications_active',
+    color: '#2563EB',
+    bg: '#EFF6FF',
+    title: 'Notifikasi In-App & Layar HP Aktif! 🔔',
+    desc: 'Pemberitahuan transaksi, pengingat harian, dan peringatan anggaran sekarang langsung masuk ke tanda lonceng aplikasi & lock screen HP Anda.',
+    time: 'Hari ini',
+    unread: true,
+    timestamp: Date.now(),
+    url: '/dasbor',
+  },
+  {
+    id: 'sample-budget',
+    icon: 'warning',
+    color: '#E11D48',
+    bg: '#FDE8E8',
+    title: 'Peringatan Anggaran Belanja',
+    desc: 'Pengeluaran kategori belanja mendekati batas anggaran bulanan.',
+    time: '2 jam lalu',
+    unread: true,
+    timestamp: Date.now() - 7200000,
+    url: '/anggaran',
+  },
+  {
+    id: 'sample-savings',
+    icon: 'savings',
+    color: '#059669',
+    bg: '#ECFDF5',
+    title: 'Target Tabungan 80% Tercapai',
+    desc: 'Dana darurat hampir mencapai target yang Anda tetapkan.',
+    time: '1 hari lalu',
+    unread: false,
+    timestamp: Date.now() - 86400000,
+    url: '/tabungan',
+  },
+];
+
+/**
+ * Get all in-app notifications from localStorage
+ */
+export function getInAppNotifications() {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(NOTIF_STORAGE_KEY);
+    if (!raw) {
+      localStorage.setItem(NOTIF_STORAGE_KEY, JSON.stringify(DEFAULT_IN_APP_NOTIFICATIONS));
+      return DEFAULT_IN_APP_NOTIFICATIONS;
+    }
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : DEFAULT_IN_APP_NOTIFICATIONS;
+  } catch (e) {
+    console.warn('Error reading in-app notifications:', e);
+    return DEFAULT_IN_APP_NOTIFICATIONS;
+  }
+}
+
+/**
+ * Save in-app notifications and broadcast event to listeners (e.g. NotificationButton)
+ */
+export function saveInAppNotifications(notifs) {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(NOTIF_STORAGE_KEY, JSON.stringify(notifs));
+    window.dispatchEvent(new CustomEvent('in-app-notification-changed'));
+  } catch (e) {
+    console.warn('Error saving in-app notifications:', e);
+  }
+}
+
+/**
+ * Add a new notification directly to the in-app bell notification store
+ */
+export function addInAppNotification({
+  title = 'Pemberitahuan Baru',
+  desc = '',
+  icon = 'notifications',
+  color = '#2563EB',
+  bg = '#EFF6FF',
+  url = '/transaksi',
+} = {}) {
+  const current = getInAppNotifications();
+  const newNotif = {
+    id: 'notif_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+    icon,
+    color,
+    bg,
+    title,
+    desc,
+    time: 'Baru saja',
+    unread: true,
+    timestamp: Date.now(),
+    url,
+  };
+  // Prepend to top and limit to 30 items
+  const updated = [newNotif, ...current].slice(0, 30);
+  saveInAppNotifications(updated);
+  return newNotif;
+}
+
+/**
+ * Mark a single in-app notification as read
+ */
+export function markNotificationRead(id) {
+  const current = getInAppNotifications();
+  const updated = current.map((n) => (n.id === id ? { ...n, unread: false } : n));
+  saveInAppNotifications(updated);
+}
+
+/**
+ * Mark all in-app notifications as read
+ */
+export function markAllNotificationsRead() {
+  const current = getInAppNotifications();
+  const updated = current.map((n) => ({ ...n, unread: false }));
+  saveInAppNotifications(updated);
+}
+
+/**
+ * Clear all in-app notifications
+ */
+export function clearAllInAppNotifications() {
+  saveInAppNotifications([]);
+}
+
+/* =========================================================================
+   NATIVE WEB PUSH & MOBILE LOCK SCREEN NOTIFICATIONS
+   ========================================================= */
 
 export function isNotificationSupported() {
   return typeof window !== 'undefined' && 'Notification' in window;
@@ -23,13 +155,13 @@ export async function requestNotificationPermission() {
     const permission = await Notification.requestPermission();
     if (permission === 'granted') {
       localStorage.setItem('user_mobile_notif_enabled', 'true');
-      return { success: true, status: 'granted', message: 'Notifikasi berhasil diaktifkan!' };
+      return { success: true, status: 'granted', message: 'Izin notifikasi aktif! Notifikasi siap muncul di lock screen HP.' };
     } else {
       localStorage.setItem('user_mobile_notif_enabled', 'false');
       return {
         success: false,
         status: permission,
-        message: 'Izin notifikasi belum diizinkan. Anda dapat mengaktifkannya di pengaturan peramban/HP.',
+        message: 'Izin notifikasi belum diizinkan. Silakan izinkan di pengaturan browser/HP agar muncul di lock screen.',
       };
     }
   } catch (error) {
@@ -39,55 +171,60 @@ export async function requestNotificationPermission() {
 }
 
 /**
- * Send native push notification to device/mobile
+ * Send native push notification to device/mobile screen & lock screen
+ * Menggunakan PNG raster icon dan renotify agar dapat tampil di Lock Screen Android & iOS PWA.
  */
-export function sendPushNotification({
+export async function sendPushNotification({
   title = '⏰ Money Management',
   body = 'Catatan keuangan baru berhasil disimpan.',
-  icon = '/logo.svg',
-  tag = 'money-notification',
+  icon = '/icon-192.png',
+  badge = '/icon-192.png',
+  tag = '',
   url = '/transaksi',
 } = {}) {
   if (!isNotificationSupported()) {
     return false;
   }
 
-  // Auto enable if permission was granted
-  if (Notification.permission === 'granted') {
+  // Auto request permission if status is default
+  let perm = Notification.permission;
+  if (perm === 'default') {
+    const res = await requestNotificationPermission();
+    perm = res.status;
+  }
+
+  if (perm !== 'granted') {
+    return false;
+  }
+
+  const notificationTag = tag || `money-${Date.now()}`;
+  const notifOptions = {
+    body,
+    icon,
+    badge,
+    tag: notificationTag,
+    renotify: true,
+    vibrate: [300, 150, 300],
+    data: { url },
+    requireInteraction: false,
+    silent: false,
+  };
+
+  // 1. Try via Service Worker (Wajib untuk Lock Screen & Status Bar Android / iOS PWA)
+  if ('serviceWorker' in navigator) {
     try {
-      // 1. Try via Service Worker first for maximum mobile reliability
-      if ('serviceWorker' in navigator && navigator.serviceWorker.ready) {
-        navigator.serviceWorker.ready
-          .then((registration) => {
-            if (registration && registration.showNotification) {
-              return registration.showNotification(title, {
-                body,
-                icon,
-                badge: icon,
-                tag,
-                data: { url },
-                vibrate: [250, 100, 250],
-                requireInteraction: false,
-              });
-            }
-            throw new Error('SW showNotification unavailable');
-          })
-          .catch(() => {
-            // Fallback to standard Notification constructor
-            createWindowNotification(title, body, icon, tag, url);
-          });
+      const reg = await navigator.serviceWorker.ready;
+      if (reg && reg.showNotification) {
+        await reg.showNotification(title, notifOptions);
         return true;
       }
-
-      // 2. Fallback to standard window Notification
-      return createWindowNotification(title, body, icon, tag, url);
     } catch (e) {
-      console.warn('Notification error:', e);
-      return false;
+      console.warn('SW showNotification error, trying fallback:', e);
     }
   }
 
-  return false;
+  // 2. Fallback to standard window Notification constructor
+  return createWindowNotification(title, body, icon, notificationTag, url);
 }
 
 function createWindowNotification(title, body, icon, tag, url) {
@@ -97,7 +234,7 @@ function createWindowNotification(title, body, icon, tag, url) {
       icon,
       badge: icon,
       tag,
-      vibrate: [200, 100, 200],
+      vibrate: [300, 150, 300],
       requireInteraction: false,
     });
 
@@ -117,8 +254,38 @@ function createWindowNotification(title, body, icon, tag, url) {
 }
 
 /**
+ * Uji coba notifikasi khusus untuk Lock Screen (Layar Terkunci HP).
+ * Memberikan jeda waktu hitung mundur agar pengguna sempat mengunci layar HP mereka
+ * untuk melihat notifikasi muncul langsung di lock screen!
+ */
+export function scheduleLockScreenTestNotification(delaySeconds = 3, onCountdown) {
+  let remaining = delaySeconds;
+  if (onCountdown) onCountdown(remaining);
+
+  const intervalId = setInterval(() => {
+    remaining -= 1;
+    if (remaining > 0) {
+      if (onCountdown) onCountdown(remaining);
+    } else {
+      clearInterval(intervalId);
+      if (onCountdown) onCountdown(0);
+      sendPushNotification({
+        title: '🔒 Money Management (Lock Screen)',
+        body: 'Notifikasi berhasil muncul di layar HP Anda! Catat keuanganmu tepat waktu 📊',
+        icon: '/icon-192.png',
+        badge: '/icon-192.png',
+        tag: `lockscreen-${Date.now()}`,
+        url: '/transaksi',
+      });
+    }
+  }, 1000);
+
+  return () => clearInterval(intervalId);
+}
+
+/**
  * Notifikasi instan saat pengguna menginput transaksi baru.
- * Menghitung total pengeluaran hari ini dan menampilkannya di notifikasi HP!
+ * Otomatis menambahkan pemberitahuan ke lonceng aplikasi & mengirim Web Push ke Lock Screen!
  */
 export function notifyTransactionCreated({
   type = 'expense',
@@ -153,33 +320,41 @@ export function notifyTransactionCreated({
 
   let title = '';
   let body = '';
+  let icon = 'payments';
+  let color = '#E11D48';
+  let bg = '#FEE2E2';
 
   if (type === 'expense') {
-    title = `💸 Pengeluaran Tercatat: -${formattedAmount}`;
-    body = `Total pengeluaran hari ini: ${formattedTodayExpense}. Kategori: ${categoryName || 'Pengeluaran'}.`;
+    title = `💸 Pengeluaran: -${formattedAmount}`;
+    body = `Total hari ini: ${formattedTodayExpense}. Kategori: ${categoryName || 'Pengeluaran'}.`;
+    icon = 'shopping_bag';
+    color = '#E11D48';
+    bg = '#FDE8E8';
   } else if (type === 'income') {
-    title = `💰 Pemasukan Tercatat: +${formattedAmount}`;
+    title = `💰 Pemasukan: +${formattedAmount}`;
     body = `Total pengeluaran hari ini: ${formattedTodayExpense}. Pemasukan berhasil ditambahkan!`;
+    icon = 'account_balance_wallet';
+    color = '#059669';
+    bg = '#ECFDF5';
   } else {
-    title = `⇄ Transfer Tercatat: ${formattedAmount}`;
-    body = `Dana berhasil dipindahkan. Total pengeluaran hari ini: ${formattedTodayExpense}.`;
+    title = `⇄ Transfer: ${formattedAmount}`;
+    body = `Dana berhasil dipindahkan. Total hari ini: ${formattedTodayExpense}.`;
+    icon = 'sync_alt';
+    color = '#2563EB';
+    bg = '#EFF6FF';
   }
 
-  // Check permission or prompt
-  if (getNotificationPermission() === 'default') {
-    requestNotificationPermission().then((res) => {
-      if (res.success) {
-        sendPushNotification({
-          title,
-          body,
-          tag: `tx-${Date.now()}`,
-          url: '/transaksi',
-        });
-      }
-    });
-    return;
-  }
+  // 1. TAMBAHKAN KE PUSAT NOTIFIKASI LONCENG APLIKASI
+  addInAppNotification({
+    title,
+    desc: body,
+    icon,
+    color,
+    bg,
+    url: '/transaksi',
+  });
 
+  // 2. KIRIM KE STATUS BAR & LOCK SCREEN HP
   sendPushNotification({
     title,
     body,
@@ -190,20 +365,19 @@ export function notifyTransactionCreated({
 
 /**
  * Cek apakah hari ini sudah ada transaksi atau belum.
- * Jika belum ada transaksi sama sekali, kirim pengingat (reminder).
+ * Jika belum ada transaksi sama sekali pada pukul 20:00 WIB, kirim pengingat ke lonceng & lock screen.
  */
 export function checkAndSendDailyReminder(transactions = []) {
   if (typeof window === 'undefined') return;
 
   const isEnabled = localStorage.getItem('user_mobile_notif_enabled') !== 'false';
-  if (!isEnabled || getNotificationPermission() !== 'granted') return;
+  if (!isEnabled) return;
 
   const todayStr = new Date().toISOString().slice(0, 10);
-  // Fixed reminder hour: 20:00 WIB
   const targetHour = 20;
   const reminderKey = `user_last_reminder_${todayStr}_${targetHour}`;
 
-  // If already reminded today at this hour, don't spam
+  // If already reminded today at this hour, don't repeat
   if (localStorage.getItem(reminderKey) === 'true') return;
 
   // Check if user has any transaction today
@@ -221,27 +395,30 @@ export function checkAndSendDailyReminder(transactions = []) {
 
   // Trigger when currentHour reaches 20:00
   if (currentHour >= targetHour) {
+    const reminderTitle = '⏰ Pengingat: Belum Ada Catatan Hari Ini!';
+    const reminderDesc = 'Kamu belum mencatat pengeluaran atau pemasukan hari ini. Yuk catat sekarang agar keuanganmu tetap terkontrol! 📊';
+
+    // Tambahkan ke lonceng in-app
+    addInAppNotification({
+      title: reminderTitle,
+      desc: reminderDesc,
+      icon: 'alarm',
+      color: '#D97706',
+      bg: '#FEF3C7',
+      url: '/transaksi',
+    });
+
+    // Kirim push ke status bar & lock screen
     sendPushNotification({
-      title: '⏰ Pengingat: Belum Ada Catatan Hari Ini!',
-      body: 'Kamu belum mencatat pengeluaran atau pemasukan hari ini. Yuk catat sekarang agar keuanganmu tetap terkontrol! 📊',
+      title: reminderTitle,
+      body: reminderDesc,
       tag: 'daily-reminder-empty',
       url: '/transaksi',
     });
+
     localStorage.setItem(reminderKey, 'true');
     localStorage.setItem('user_last_reminder_date', todayStr);
   }
-}
-
-// Generate WhatsApp reminder link
-export function openWhatsAppReminder(phone = '') {
-  const message = encodeURIComponent(
-    'Pengingat Money Management: Jangan lupa catat seluruh transaksi pengeluaran & pemasukan Anda hari ini di http://localhost:3000/transaksi! 📊'
-  );
-  const cleanPhone = phone ? phone.replace(/[^0-9]/g, '') : '';
-  const waUrl = cleanPhone
-    ? `https://wa.me/${cleanPhone}?text=${message}`
-    : `https://wa.me/?text=${message}`;
-  window.open(waUrl, '_blank');
 }
 
 // Background scheduler that runs periodically while the web app is open
@@ -254,9 +431,8 @@ export function initDailyReminderScheduler() {
   const checkAndNotify = () => {
     try {
       const isEnabled = localStorage.getItem('user_mobile_notif_enabled') !== 'false';
-      if (!isEnabled || getNotificationPermission() !== 'granted') return;
+      if (!isEnabled) return;
 
-      // Fixed reminder hour: 20:00 WIB (no user config needed)
       const targetHour = 20;
       const now = new Date();
       const currentHour = now.getHours();
@@ -266,12 +442,25 @@ export function initDailyReminderScheduler() {
       const lastTxDate = localStorage.getItem('user_last_tx_date');
 
       if (lastTxDate !== todayStr && currentHour >= targetHour && !alreadySent) {
+        const reminderTitle = '⏰ Pengingat: Belum Ada Catatan Hari Ini!';
+        const reminderDesc = 'Kamu belum mencatat pengeluaran atau pemasukan hari ini. Yuk catat sekarang agar keuanganmu tetap terkontrol! 📊';
+
+        addInAppNotification({
+          title: reminderTitle,
+          desc: reminderDesc,
+          icon: 'alarm',
+          color: '#D97706',
+          bg: '#FEF3C7',
+          url: '/transaksi',
+        });
+
         sendPushNotification({
-          title: '⏰ Pengingat: Belum Ada Catatan Hari Ini!',
-          body: 'Kamu belum mencatat pengeluaran atau pemasukan hari ini. Yuk catat sekarang agar keuanganmu tetap terkontrol! 📊',
+          title: reminderTitle,
+          body: reminderDesc,
           tag: 'daily-reminder-empty',
           url: '/transaksi',
         });
+
         localStorage.setItem(reminderKey, 'true');
         localStorage.setItem('user_last_reminder_date', todayStr);
       }

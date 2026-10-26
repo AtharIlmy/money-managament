@@ -7,7 +7,8 @@ import {
   getNotificationPermission,
   requestNotificationPermission,
   sendPushNotification,
-  openWhatsAppReminder,
+  addInAppNotification,
+  scheduleLockScreenTestNotification,
 } from '../lib/notifications';
 
 export default function Settings() {
@@ -85,31 +86,7 @@ export default function Settings() {
   const [reminderHour, setReminderHour] = useState('20');
   const [notifFeedback, setNotifFeedback] = useState('');
 
-  // WA Reminder state
-  const [waPhone, setWaPhone] = useState('');
-  const [waEnabled, setWaEnabled] = useState(false);
-  const [waHour, setWaHour] = useState('20');
-  const [waVerified, setWaVerified] = useState(false);
-  const [lastReminderDate, setLastReminderDate] = useState(null);
-  const [waSaving, setWaSaving] = useState(false);
-  const [waTesting, setWaTesting] = useState(false);
-  const [waMessage, setWaMessage] = useState({ type: '', text: '' });
-
-  // OTP Verification state
-  const [otpSent, setOtpSent] = useState(false);
-  const [otpCode, setOtpCode] = useState('');
-  const [otpLoading, setOtpLoading] = useState(false);
-  const [otpCooldown, setOtpCooldown] = useState(0);
-
-  // OTP cooldown countdown
-  useEffect(() => {
-    if (otpCooldown > 0) {
-      const timer = setTimeout(() => setOtpCooldown((c) => c - 1), 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [otpCooldown]);
-
-  // Load reminder settings from backend
+  // Load reminder settings
   useEffect(() => {
     if (typeof window !== 'undefined') {
       setPermissionStatus(getNotificationPermission());
@@ -121,22 +98,6 @@ export default function Settings() {
         setReminderHour(savedHour);
       }
     }
-    // Load WA reminder settings from backend
-    authFetch('/api/reminder/settings')
-      .then((res) => res.json())
-      .then((data) => {
-        if (data && !data.error) {
-          setWaPhone(data.phone_number || '');
-          setWaEnabled(Boolean(data.reminder_enabled));
-          const h = data.reminder_hour !== undefined && data.reminder_hour !== null ? data.reminder_hour.toString() : '20';
-          setWaHour(h);
-          setReminderHour(h);
-          localStorage.setItem('user_reminder_hour', h);
-          setWaVerified(Boolean(data.phone_verified));
-          setLastReminderDate(data.last_reminder_date || null);
-        }
-      })
-      .catch(() => {});
   }, []);
 
   const handleEnablePermission = async () => {
@@ -145,7 +106,7 @@ export default function Settings() {
     setNotifFeedback(res.message);
     if (res.success) {
       sendPushNotification({
-        title: '🎉 Notifikasi Pengingat HP Aktif',
+        title: '🎉 Notifikasi Pengingat Layar Aktif',
         body: 'Money Management akan mengingatkan Anda untuk mencatat transaksi tepat waktu!',
       });
     }
@@ -166,120 +127,41 @@ export default function Settings() {
     setTimeout(() => setNotifFeedback(''), 4500);
   };
 
-
-  // Send WhatsApp OTP Verification Code
-  const handleSendOtp = async () => {
-    if (!waPhone.trim()) {
-      setWaMessage({ type: 'error', text: 'Masukkan nomor WhatsApp terlebih dahulu.' });
-      setTimeout(() => setWaMessage({ type: '', text: '' }), 4000);
-      return;
-    }
-    setOtpLoading(true);
-    try {
-      const res = await authFetch('/api/reminder/send-otp', {
-        method: 'POST',
-        body: JSON.stringify({ phone_number: waPhone.trim() }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Gagal mengirim OTP');
-      setOtpSent(true);
-      setOtpCooldown(60);
-      setWaMessage({ type: 'success', text: `📩 ${data.message}` });
-    } catch (err) {
-      setWaMessage({ type: 'error', text: err.message });
-    } finally {
-      setOtpLoading(false);
-      setTimeout(() => setWaMessage({ type: '', text: '' }), 6000);
-    }
+  const handleTestInApp = () => {
+    addInAppNotification({
+      title: '🔔 Uji Coba Notifikasi In-App',
+      desc: 'Notifikasi berhasil terkirim langsung ke tanda lonceng aplikasi!',
+      icon: 'notifications_active',
+      color: '#2563EB',
+      bg: '#EFF6FF',
+      url: '/dasbor',
+    });
+    setNotifFeedback('Notifikasi tes berhasil masuk ke ikon lonceng di atas!');
+    setTimeout(() => setNotifFeedback(''), 4500);
   };
 
-  // Verify OTP
-  const handleVerifyOtp = async () => {
-    if (!otpCode.trim() || otpCode.trim().length !== 6) {
-      setWaMessage({ type: 'error', text: 'Masukkan 6 digit kode verifikasi OTP.' });
-      setTimeout(() => setWaMessage({ type: '', text: '' }), 4000);
-      return;
-    }
-    setOtpLoading(true);
-    try {
-      const res = await authFetch('/api/reminder/verify-otp', {
-        method: 'POST',
-        body: JSON.stringify({ otp_code: otpCode.trim(), phone_number: waPhone.trim() }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Kode OTP salah atau kedaluwarsa');
-      setWaVerified(true);
-      setWaEnabled(true);
-      setOtpSent(false);
-      setOtpCode('');
-      setWaMessage({ type: 'success', text: `🎉 ${data.message}` });
-    } catch (err) {
-      setWaMessage({ type: 'error', text: err.message });
-    } finally {
-      setOtpLoading(false);
-      setTimeout(() => setWaMessage({ type: '', text: '' }), 6000);
-    }
-  };
+  const [lockCountdown, setLockCountdown] = useState(null);
 
-  // Save WA Reminder Settings to backend
-  const handleSaveWaReminder = async () => {
-    if (!waPhone.trim()) {
-      setWaMessage({ type: 'error', text: 'Masukkan nomor HP terlebih dahulu.' });
-      setTimeout(() => setWaMessage({ type: '', text: '' }), 4000);
-      return;
+  const handleTestLockScreen = async () => {
+    if (permissionStatus !== 'granted') {
+      const res = await requestNotificationPermission();
+      setPermissionStatus(getNotificationPermission());
+      if (!res.success) {
+        setNotifFeedback('Mohon izinkan notifikasi terlebih dahulu agar dapat muncul di lock screen.');
+        setTimeout(() => setNotifFeedback(''), 4500);
+        return;
+      }
     }
-    setWaSaving(true);
-    try {
-      const res = await authFetch('/api/reminder/settings', {
-        method: 'PUT',
-        body: JSON.stringify({
-          phone_number: waPhone.trim(),
-          reminder_enabled: waEnabled,
-          reminder_hour: parseInt(waHour, 10),
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Gagal menyimpan');
-      setWaVerified(Boolean(data.phone_verified));
-      setWaMessage({
-        type: 'success',
-        text: `✅ Pengaturan pengingat WA disimpan! Jadwal: pukul ${waHour}:00 WIB.${!data.phone_verified ? ' Harap verifikasi nomor dengan OTP agar pengingat aktif.' : ''}`
-      });
-    } catch (err) {
-      setWaMessage({ type: 'error', text: err.message });
-    } finally {
-      setWaSaving(false);
-      setTimeout(() => setWaMessage({ type: '', text: '' }), 6000);
-    }
-  };
 
-  // Test WA Reminder — trigger immediately
-  const handleTestWaReminder = async () => {
-    if (!waPhone.trim()) {
-      setWaMessage({ type: 'error', text: 'Simpan nomor HP dulu sebelum tes.' });
-      setTimeout(() => setWaMessage({ type: '', text: '' }), 4000);
-      return;
-    }
-    setWaTesting(true);
-    try {
-      // First save the current phone, then trigger test
-      await authFetch('/api/reminder/settings', {
-        method: 'PUT',
-        body: JSON.stringify({
-          phone_number: waPhone.trim(),
-          reminder_enabled: waEnabled,
-          reminder_hour: parseInt(waHour, 10),
-        }),
-      });
-      const res = await authFetch('/api/reminder/test', { method: 'POST' });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Gagal tes');
-      setWaMessage({ type: 'success', text: `📱 ${data.message}` });
-    } catch (err) {
-      setWaMessage({ type: 'error', text: err.message });
-    } finally {
-      setWaTesting(false);
-    }
+    setNotifFeedback('🔒 Kunci layar HP Anda sekarang! Notifikasi akan muncul dalam 4 detik...');
+    scheduleLockScreenTestNotification(4, (seconds) => {
+      setLockCountdown(seconds);
+      if (seconds === 0) {
+        setLockCountdown(null);
+        setNotifFeedback('✓ Notifikasi telah dikirim ke Lock Screen HP!');
+        setTimeout(() => setNotifFeedback(''), 5000);
+      }
+    });
   };
 
   // Export state
@@ -390,9 +272,6 @@ export default function Settings() {
     setNotifSaving(true);
     try {
       localStorage.setItem('user_notification_settings', JSON.stringify(notifSettings));
-      if (waPhone.trim()) {
-        await handleSaveWaReminder();
-      }
       setNotifSaved(true);
       setNotifFeedback('Pengaturan notifikasi berhasil diperbarui!');
     } catch (err) {
@@ -1011,315 +890,209 @@ export default function Settings() {
                 )}
 
                 {/* ═══════════════════════════════════════════════════════════
-                    SECTION: WhatsApp Reminder — Nomor HP
+                    SECTION: In-App Notification Center & Bell Alerts
                 ═══════════════════════════════════════════════════════════ */}
                 <div
                   style={{
-                    background: 'linear-gradient(135deg, #E7F9EE 0%, #F0FDF4 100%)',
-                    border: '2px solid #22C55E',
+                    background: 'linear-gradient(135deg, var(--primary-50) 0%, #FFFFFF 100%)',
+                    border: '1.5px solid var(--primary-light, #BFDBFE)',
                     borderRadius: 16,
                     padding: '24px 26px',
                     marginBottom: 24,
                     position: 'relative',
                     overflow: 'hidden',
+                    boxShadow: 'var(--shadow-sm)',
                   }}
                 >
-                  {/* Decorative circle */}
-                  <div style={{ position: 'absolute', top: -20, right: -20, width: 100, height: 100, borderRadius: '50%', background: 'rgba(34,197,94,0.08)' }} />
-
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <div style={{ width: 42, height: 42, borderRadius: 12, background: '#25D366', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 4px 12px rgba(37,211,102,0.3)' }}>
-                        <Icon name="chat" size={22} style={{ color: '#FFFFFF' }} />
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div
+                        style={{
+                          width: 44,
+                          height: 44,
+                          borderRadius: 14,
+                          background: 'var(--primary)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0,
+                          boxShadow: '0 4px 14px rgba(37, 99, 235, 0.28)',
+                        }}
+                      >
+                        <Icon name="notifications_active" size={24} style={{ color: '#FFFFFF' }} />
                       </div>
                       <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <h3 style={{ fontSize: 16, fontWeight: 800, color: '#15803D', margin: 0 }}>
-                            Reminder WhatsApp ke HP 📲
+                          <h3 style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
+                            Pusat Notifikasi Langsung di Aplikasi 🔔
                           </h3>
-                          {waVerified ? (
-                            <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 999, background: '#DCFCE7', color: '#15803D', border: '1px solid #86EFAC', display: 'flex', alignItems: 'center', gap: 4 }}>
-                              <Icon name="verified" size={13} /> Terverifikasi
-                            </span>
-                          ) : (
-                            <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 999, background: '#FEF3C7', color: '#B45309', border: '1px solid #FCD34D', display: 'flex', alignItems: 'center', gap: 4 }}>
-                              <Icon name="warning" size={13} /> Belum Diverifikasi
-                            </span>
-                          )}
                         </div>
-                        <p style={{ fontSize: 12, color: '#16A34A', margin: '2px 0 0' }}>
-                          Otomatis kirim pesan WA jika kamu belum mencatat transaksi harian
+                        <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: '3px 0 0' }}>
+                          Pemberitahuan keuangan otomatis masuk ke ikon lonceng &amp; layar HP Anda tanpa perlu WhatsApp
                         </p>
                       </div>
                     </div>
+
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ fontSize: 11, fontWeight: 700, padding: '5px 12px', borderRadius: 999, background: waEnabled && waVerified ? '#DCFCE7' : '#F1F5F9', color: waEnabled && waVerified ? '#16A34A' : '#64748B' }}>
-                        {waEnabled && waVerified ? '● Pengingat Aktif' : '○ Nonaktif'}
+                      <span
+                        style={{
+                          fontSize: 11.5,
+                          fontWeight: 700,
+                          padding: '5px 12px',
+                          borderRadius: 999,
+                          background: 'var(--income-bg, #DCFCE7)',
+                          color: 'var(--income-color, #16A34A)',
+                          border: '1px solid #86EFAC',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 5,
+                        }}
+                      >
+                        <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--income-color, #16A34A)' }} />
+                        Lonceng In-App Aktif
                       </span>
                     </div>
                   </div>
 
-                  {/* Feedback Message */}
-                  {waMessage.text && (
-                    <div
-                      className={waMessage.type === 'success' ? 'alert alert-success' : 'alert alert-error'}
-                      style={{ margin: '12px 0 16px', fontSize: 12.5 }}
-                    >
-                      <Icon name={waMessage.type === 'success' ? 'check_circle' : 'error'} size={16} />
-                      <span>{waMessage.text}</span>
-                    </div>
-                  )}
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                    {/* Phone Input with Verification Status */}
-                    <div>
-                      <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#166534', marginBottom: 6 }}>
-                        📱 Nomor WhatsApp Aktif:
-                      </label>
-                      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', background: '#FFFFFF', border: '1.5px solid #86EFAC', borderRadius: 10, padding: '0 12px', flexShrink: 0 }}>
-                          <span style={{ fontSize: 13, fontWeight: 700, color: '#166534' }}>🇮🇩 +62</span>
-                        </div>
-                        <input
-                          type="tel"
-                          className="form-input"
-                          value={waPhone}
-                          onChange={(e) => {
-                            setWaPhone(e.target.value);
-                            // If user edits phone, it resets verified badge until saved/verified
-                            if (waVerified) setWaVerified(false);
-                          }}
-                          placeholder="8123456789 (tanpa angka 0 di depan)"
-                          style={{ flex: 1, minWidth: 200, border: '1.5px solid #86EFAC', background: '#FFFFFF', fontSize: 13.5 }}
-                          id="wa-phone-input"
-                        />
-                        <button
-                          type="button"
-                          onClick={handleSendOtp}
-                          disabled={otpLoading || !waPhone.trim() || otpCooldown > 0}
-                          style={{
-                            background: waVerified ? '#0F766E' : '#D97706',
-                            color: '#FFFFFF',
-                            border: 'none',
-                            borderRadius: 10,
-                            padding: '0 16px',
-                            fontSize: 12.5,
-                            fontWeight: 700,
-                            cursor: (otpLoading || !waPhone.trim() || otpCooldown > 0) ? 'not-allowed' : 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 6,
-                            opacity: (otpLoading || !waPhone.trim() || otpCooldown > 0) ? 0.65 : 1,
-                            transition: 'all 0.15s',
-                          }}
-                        >
-                          <Icon name={otpLoading ? 'hourglass_empty' : 'verified_user'} size={15} />
-                          <span>
-                            {otpCooldown > 0
-                              ? `Tunggu (${otpCooldown}s)`
-                              : waVerified
-                              ? 'Verifikasi Ulang'
-                              : 'Kirim Kode OTP'}
-                          </span>
-                        </button>
-                      </div>
-                      <div style={{ fontSize: 11, color: '#16A34A', marginTop: 4 }}>
-                        Contoh: 81234567890. Untuk keamanan, kode verifikasi 6 digit akan dikirim ke WhatsApp ini.
-                      </div>
-                    </div>
-
-                    {/* OTP Input box if OTP sent or not verified */}
-                    {(otpSent || (!waVerified && waPhone.trim())) && (
-                      <div
-                        style={{
-                          background: '#FFFFFF',
-                          borderRadius: 12,
-                          padding: '16px 18px',
-                          border: '1.5px dashed #34D399',
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                          <Icon name="lock" size={17} style={{ color: '#059669' }} />
-                          <div style={{ fontSize: 13, fontWeight: 700, color: '#065F46' }}>
-                            Masukkan 6 Digit Kode OTP Verifikasi
-                          </div>
-                        </div>
-                        <p style={{ fontSize: 11.5, color: '#047857', margin: '0 0 12px' }}>
-                          Periksa pesan WhatsApp yang kami kirimkan ke nomor Anda, lalu masukkan 6 digit kodenya di bawah ini:
-                        </p>
-                        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                          <input
-                            type="text"
-                            maxLength={6}
-                            placeholder="Contoh: 123456"
-                            value={otpCode}
-                            onChange={(e) => setOtpCode(e.target.value.replace(/[^0-9]/g, ''))}
-                            style={{
-                              maxWidth: 160,
-                              textAlign: 'center',
-                              letterSpacing: '3px',
-                              fontWeight: 700,
-                              fontSize: 16,
-                              padding: '8px 12px',
-                              borderRadius: 8,
-                              border: '1.5px solid #059669',
-                            }}
-                          />
-                          <button
-                            type="button"
-                            onClick={handleVerifyOtp}
-                            disabled={otpLoading || otpCode.trim().length !== 6}
-                            style={{
-                              background: '#059669',
-                              color: '#FFFFFF',
-                              border: 'none',
-                              borderRadius: 8,
-                              padding: '8px 20px',
-                              fontSize: 13,
-                              fontWeight: 700,
-                              cursor: (otpLoading || otpCode.trim().length !== 6) ? 'not-allowed' : 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 6,
-                              opacity: (otpLoading || otpCode.trim().length !== 6) ? 0.6 : 1,
-                            }}
-                          >
-                            <Icon name={otpLoading ? 'hourglass_empty' : 'check'} size={16} />
-                            <span>{otpLoading ? 'Memverifikasi...' : 'Verifikasi Sekarang'}</span>
-                          </button>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Reminder Hour & Toggle Settings */}
+                  {/* 3 Highlight Cards */}
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                      gap: 12,
+                      marginBottom: 18,
+                    }}
+                  >
                     <div
                       style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
-                        gap: 14,
-                        background: '#FFFFFF',
+                        background: 'var(--bg-card)',
+                        padding: '14px 16px',
                         borderRadius: 12,
-                        padding: '16px',
-                        border: '1px solid #BBF7D0',
+                        border: '1px solid var(--border-light)',
                       }}
                     >
-                      {/* Jam Pengingat — hardcoded 20:00 WIB */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: '#F0FDF4', borderRadius: 10, padding: '12px 14px', border: '1.5px solid #86EFAC' }}>
-                        <div style={{ fontSize: 28 }}>⏰</div>
-                        <div>
-                          <div style={{ fontSize: 13, fontWeight: 800, color: '#15803D' }}>Pengingat Otomatis Jam 20:00 WIB</div>
-                          <div style={{ fontSize: 11.5, color: '#16A34A', marginTop: 2 }}>
-                            Sistem otomatis mengirim WA setiap hari pukul <strong>20:00 WIB</strong> jika belum ada transaksi yang dicatat. Tidak perlu setting jam.
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Toggle Aktif */}
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 8px' }}>
-                        <div>
-                          <div style={{ fontSize: 13, fontWeight: 700, color: '#15803D' }}>Aktifkan Notifikasi WhatsApp</div>
-                          <div style={{ fontSize: 11.5, color: '#16A34A', marginTop: 2 }}>
-                            {waVerified ? 'Otomatis kirim jika belum input data' : 'Aktif setelah nomor HP terverifikasi'}
-                          </div>
-                        </div>
-                        <label style={{ position: 'relative', display: 'inline-block', width: 46, height: 26, flexShrink: 0 }}>
-                          <input
-                            type="checkbox"
-                            checked={waEnabled}
-                            onChange={(e) => setWaEnabled(e.target.checked)}
-                            style={{ opacity: 0, width: 0, height: 0 }}
-                          />
-                          <span
-                            style={{
-                              position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0,
-                              background: waEnabled ? '#22C55E' : '#CBD5E1',
-                              borderRadius: 26, transition: '0.3s',
-                            }}
-                          >
-                            <span style={{
-                              position: 'absolute', content: '', height: 20, width: 20,
-                              left: waEnabled ? 22 : 3, bottom: 3,
-                              background: '#FFFFFF', borderRadius: '50%', transition: '0.3s',
-                              boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
-                            }} />
-                          </span>
-                        </label>
-                      </div>
-                    </div>
-
-                    {/* Status Info (Last Reminder & Prevention) */}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, fontSize: 11.5, color: '#166534' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <Icon name="history" size={15} style={{ color: '#16A34A' }} />
-                        <span>
-                          Pengingat Terakhir:{' '}
-                          <strong>
-                            {lastReminderDate
-                              ? new Date(lastReminderDate).toLocaleDateString('id-ID', {
-                                  day: 'numeric',
-                                  month: 'long',
-                                  year: 'numeric',
-                                })
-                              : 'Belum pernah dikirim'}
-                          </strong>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                        <Icon name="payments" size={17} style={{ color: 'var(--primary)' }} />
+                        <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-primary)' }}>
+                          Riwayat Transaksi
                         </span>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <Icon name="shield" size={15} style={{ color: '#16A34A' }} />
-                        <span>Anti-duplikasi aktif (maksimal 1x sehari)</span>
+                      <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.45 }}>
+                        Otomatis mencatat nominal pemasukan/pengeluaran dan total harian di menu lonceng.
                       </div>
                     </div>
 
-                    {/* Action Buttons */}
-                    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                      <button
-                        type="button"
-                        onClick={handleSaveWaReminder}
-                        disabled={waSaving}
-                        style={{
-                          background: '#16A34A', color: '#FFFFFF', border: 'none',
-                          borderRadius: 10, padding: '10px 20px', fontSize: 13, fontWeight: 700,
-                          cursor: waSaving ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 7,
-                          opacity: waSaving ? 0.7 : 1, transition: 'all 0.15s',
-                        }}
-                      >
-                        <Icon name={waSaving ? 'hourglass_empty' : 'save'} size={16} />
-                        <span>{waSaving ? 'Menyimpan...' : 'Simpan Pengaturan'}</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={handleTestWaReminder}
-                        disabled={waTesting || !waPhone.trim()}
-                        style={{
-                          background: '#25D366', color: '#FFFFFF', border: 'none',
-                          borderRadius: 10, padding: '10px 20px', fontSize: 13, fontWeight: 700,
-                          cursor: (waTesting || !waPhone.trim()) ? 'not-allowed' : 'pointer',
-                          display: 'flex', alignItems: 'center', gap: 7,
-                          opacity: (waTesting || !waPhone.trim()) ? 0.6 : 1, transition: 'all 0.15s',
-                        }}
-                      >
-                        <Icon name={waTesting ? 'hourglass_empty' : 'send'} size={16} />
-                        <span>{waTesting ? 'Mengirim...' : 'Tes Kirim WA Sekarang'}</span>
-                      </button>
+                    <div
+                      style={{
+                        background: 'var(--bg-card)',
+                        padding: '14px 16px',
+                        borderRadius: 12,
+                        border: '1px solid var(--border-light)',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                        <Icon name="alarm" size={17} style={{ color: '#D97706' }} />
+                        <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-primary)' }}>
+                          Pengingat Jam 20:00 WIB
+                        </span>
+                      </div>
+                      <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.45 }}>
+                        Peringatan otomatis muncul di lonceng &amp; layar jika kamu belum mencatat transaksi hari ini.
+                      </div>
                     </div>
 
-                    {/* Fonnte Setup Guide */}
-                    <details style={{ cursor: 'pointer' }}>
-                      <summary style={{ fontSize: 12, fontWeight: 700, color: '#15803D', userSelect: 'none' }}>
-                        ⚙️ Cara setup Fonnte API (klik untuk lihat panduan)
-                      </summary>
-                      <div style={{ marginTop: 10, background: '#FFFFFF', borderRadius: 10, padding: '14px 16px', border: '1px solid #BBF7D0' }}>
-                        <ol style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: '#166534', lineHeight: 1.9 }}>
-                          <li>Daftar gratis di <strong>fonnte.com</strong></li>
-                          <li>Scan QR Code dengan HP kamu (sambungkan WhatsApp)</li>
-                          <li>Copy <strong>API Token</strong> dari dashboard Fonnte</li>
-                          <li>Buka file <code style={{ background: '#F0FDF4', padding: '1px 4px', borderRadius: 4 }}>.env</code> di folder project</li>
-                          <li>Isi: <code style={{ background: '#F0FDF4', padding: '1px 6px', borderRadius: 4, fontSize: 11 }}>FONNTE_TOKEN=token_kamu_disini</code></li>
-                          <li>Restart server (npm run dev)</li>
-                        </ol>
+                    <div
+                      style={{
+                        background: 'var(--bg-card)',
+                        padding: '14px 16px',
+                        borderRadius: 12,
+                        border: '1px solid var(--border-light)',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                        <Icon name="security" size={17} style={{ color: 'var(--income-color)' }} />
+                        <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-primary)' }}>
+                          100% Aman &amp; Privat
+                        </span>
                       </div>
-                    </details>
+                      <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.45 }}>
+                        Tidak membutuhkan OTP ataupun pembagian nomor HP ke platform pihak ketiga.
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Actions to test notifications */}
+                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      onClick={handleTestLockScreen}
+                      disabled={lockCountdown !== null}
+                      style={{
+                        background: 'linear-gradient(135deg, #1E293B 0%, #0F172A 100%)',
+                        color: '#38BDF8',
+                        border: '1.5px solid #38BDF8',
+                        borderRadius: 10,
+                        padding: '10px 18px',
+                        fontSize: 12.5,
+                        fontWeight: 700,
+                        cursor: lockCountdown !== null ? 'wait' : 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 7,
+                        boxShadow: '0 4px 14px rgba(15, 23, 42, 0.28)',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      <Icon name="screen_lock_portrait" size={17} />
+                      <span>
+                        {lockCountdown !== null
+                          ? `⏳ Kunci Layar HP Sekarang (${lockCountdown}s)...`
+                          : '🔒 Tes Notifikasi Lock Screen HP'}
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleTestInApp}
+                      style={{
+                        background: 'var(--primary)',
+                        color: '#FFFFFF',
+                        border: 'none',
+                        borderRadius: 10,
+                        padding: '10px 18px',
+                        fontSize: 12.5,
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 7,
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      <Icon name="notifications" size={16} />
+                      <span>🔔 Tes Kirim ke Lonceng</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleTestPush}
+                      style={{
+                        background: 'var(--bg-card)',
+                        color: 'var(--primary)',
+                        border: '1.5px solid var(--primary-light, #93C5FD)',
+                        borderRadius: 10,
+                        padding: '10px 18px',
+                        fontSize: 12.5,
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 7,
+                      }}
+                    >
+                      <Icon name="smartphone" size={16} />
+                      <span>📱 Tes Notifikasi Layar Aktif</span>
+                    </button>
                   </div>
                 </div>
 
@@ -1423,27 +1196,6 @@ export default function Settings() {
                           <span>Tes Notifikasi Sekarang</span>
                         </button>
                       )}
-
-                      <button
-                        type="button"
-                        onClick={() => openWhatsAppReminder()}
-                        style={{
-                          background: '#25D366',
-                          color: '#FFFFFF',
-                          border: 'none',
-                          borderRadius: 8,
-                          padding: '9px 14px',
-                          fontSize: 12,
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 6,
-                        }}
-                      >
-                        <Icon name="chat" size={15} />
-                        <span>WA Reminder</span>
-                      </button>
                     </div>
                   </div>
                 </div>

@@ -8,10 +8,12 @@ import Logo from './Logo';
 const NAV_ITEMS = [
   { href: '/dasbor', icon: 'grid_view', label: 'Dasbor' },
   { href: '/transaksi', icon: 'swap_vert', label: 'Transaksi' },
-  { href: '/anggaran', icon: 'pie_chart', label: 'Anggaran' },
-  { href: '/laporan', icon: 'bar_chart', label: 'Laporan' },
   { href: '/dompet', icon: 'account_balance_wallet', label: 'Dompet' },
+  { href: '/anggaran', icon: 'pie_chart', label: 'Anggaran' },
+  { href: '/tabungan', icon: 'savings', label: 'Tabungan' },
+  { href: '/tagihan', icon: 'receipt_long', label: 'Tagihan' },
   { href: '/dana-darurat', icon: 'shield', label: 'Dana Darurat' },
+  { href: '/laporan', icon: 'bar_chart', label: 'Laporan' },
 ];
 
 export default function Sidebar({ isOpen = false, onClose }) {

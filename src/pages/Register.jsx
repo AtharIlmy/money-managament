@@ -127,19 +127,19 @@ export default function Register() {
           <div className="form-group">
             <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <Icon name="smartphone" size={15} style={{ color: 'var(--text-muted)' }} />
-              <span>Nomor HP WhatsApp</span>
+              <span>Nomor Kontak HP</span>
               <span
                 style={{
                   fontSize: 10,
-                  fontWeight: 700,
-                  background: '#DCFCE7',
-                  color: '#16A34A',
+                  fontWeight: 600,
+                  background: 'var(--bg-card2)',
+                  color: 'var(--text-muted)',
                   padding: '1px 7px',
                   borderRadius: 999,
                   marginLeft: 4,
                 }}
               >
-                Untuk reminder WA
+                Opsional
               </span>
             </label>
             <div style={{ position: 'relative', display: 'flex', gap: 8 }}>
@@ -171,8 +171,8 @@ export default function Register() {
               />
             </div>
             <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
-              <Icon name="notifications_active" size={12} style={{ color: '#16A34A' }} />
-              <span>Opsional — nomor WhatsApp untuk pengingat harian (bisa diverifikasi OTP di Pengaturan)</span>
+              <Icon name="info" size={13} style={{ color: 'var(--text-muted)' }} />
+              <span>Opsional — nomor kontak cadangan untuk profil akun Anda</span>
             </div>
           </div>
 

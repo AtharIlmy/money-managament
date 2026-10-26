@@ -1272,6 +1272,64 @@ input, select, textarea { font-family: 'Plus Jakarta Sans', sans-serif; outline:
   display: block;
 }
 
+/* Transaction Filter Pills (Desktop & Mobile) */
+.tx-pills-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.tx-pill {
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.tx-pill:hover {
+  background: var(--bg-card2);
+}
+
+.tx-pill.active {
+  background: #0F172A !important;
+  color: #FFFFFF !important;
+  border-color: #0F172A !important;
+  font-weight: 700;
+}
+
+[data-theme="dark"] .tx-pill.active {
+  background: var(--primary) !important;
+  border-color: var(--primary) !important;
+  color: #FFFFFF !important;
+}
+
+/* Transaction Filter Full-Width Selects */
+.tx-filter-select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 14px center !important;
+  background-size: 16px !important;
+  padding: 0 38px 0 14px !important;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.tx-filter-select:focus {
+  outline: none;
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15) !important;
+}
+
+
 @media (max-width: 768px) {
   :root {
     --sidebar-width: 0px;
@@ -2002,8 +2060,158 @@ input, select, textarea { font-family: 'Plus Jakarta Sans', sans-serif; outline:
   flex-wrap: wrap;
 }
 
-/* Bills: responsive table card list for mobile */
+/* Bills: responsive mobile card list */
+.bills-mobile-cards {
+  display: none;
+}
+
 .bill-mobile-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-card);
+  border-radius: 14px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  box-shadow: 0 2px 8px rgba(14, 32, 56, 0.04);
+  gap: 10px;
+}
+
+.bill-mobile-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.bill-mobile-info {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+  flex: 1;
+}
+
+.bill-mobile-icon-box {
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  background: var(--primary-50);
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.bill-mobile-name {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bill-mobile-category {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.bill-mobile-amount {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text-primary);
+  white-space: nowrap;
+  text-align: right;
+  letter-spacing: -0.3px;
+}
+
+.bill-mobile-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-light);
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+
+.bill-mobile-due {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.bill-mobile-subdue {
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.bill-mobile-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.bill-mobile-pay-btn {
+  flex: 1;
+  height: 38px;
+  border-radius: 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.bill-mobile-paid-tag {
+  flex: 1;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  color: var(--income-color);
+  font-weight: 700;
+  font-size: 12.5px;
+}
+
+.bill-mobile-del-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 9px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.bill-mobile-del-btn:hover {
+  color: var(--danger);
+  background: var(--danger-bg);
+  border-color: var(--danger);
+}
+
+/* Dashboard mobile tx list */
+.dashboard-mobile-tx-list {
+  display: none;
+}
+
+.dashboard-desktop-tx-table {
+  display: block;
+}
+
+/* Reports mobile toolbar */
+.reports-mobile-filter-bar {
   display: none;
 }
 
@@ -2062,7 +2270,7 @@ input, select, textarea { font-family: 'Plus Jakarta Sans', sans-serif; outline:
     flex-direction: row;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
-    gap: 4px;
+    gap: 6px;
     padding-bottom: 4px;
     scrollbar-width: none;
   }
@@ -2076,14 +2284,18 @@ input, select, textarea { font-family: 'Plus Jakarta Sans', sans-serif; outline:
     white-space: nowrap;
     min-width: unset !important;
     width: auto !important;
-    padding: 8px 14px !important;
+    padding: 9px 15px !important;
     border-radius: 20px !important;
-    font-size: 12px !important;
+    font-size: 12.5px !important;
     gap: 6px !important;
     margin-bottom: 0 !important;
   }
 
-  /* Reports: month/year filter mobile */
+  /* Reports: show mobile toolbar and stack filters */
+  .reports-mobile-filter-bar {
+    display: block !important;
+  }
+
   .reports-month-filter {
     flex-direction: column;
     align-items: stretch;
@@ -2096,8 +2308,23 @@ input, select, textarea { font-family: 'Plus Jakarta Sans', sans-serif; outline:
 
   /* Bills: show card view, hide table on small screens */
   .bills-table-wrapper {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+    display: none !important;
+  }
+
+  .bills-mobile-cards {
+    display: flex !important;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  /* Dashboard: hide table, show mobile list */
+  .dashboard-desktop-tx-table {
+    display: none !important;
+  }
+
+  .dashboard-mobile-tx-list {
+    display: flex !important;
+    flex-direction: column;
   }
 
   /* Savings: category grid 2 columns on mobile */
@@ -2126,7 +2353,7 @@ input, select, textarea { font-family: 'Plus Jakarta Sans', sans-serif; outline:
     overflow-x: auto;
     flex-wrap: nowrap !important;
     -webkit-overflow-scrolling: touch;
-    padding-bottom: 4px;
+    padding-bottom: 6px;
     scrollbar-width: none;
   }
 
@@ -2134,11 +2361,31 @@ input, select, textarea { font-family: 'Plus Jakarta Sans', sans-serif; outline:
     display: none;
   }
 
-  /* Budget section header buttons stack */
+  /* Budget section header buttons stack cleanly */
   .budget-section-header {
-    flex-direction: column;
-    align-items: flex-start !important;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
     gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  /* Navy banner actions wrap smoothly */
+  .navy-banner-actions {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+
+  .navy-banner-btn {
+    flex: 1 1 calc(50% - 8px);
+    justify-content: center;
+    text-align: center;
+    white-space: nowrap;
+    min-height: 40px;
+    display: inline-flex;
+    align-items: center;
   }
 
   /* Topbar buttons in bills/budgets pages - stack on mobile */
@@ -2146,12 +2393,10 @@ input, select, textarea { font-family: 'Plus Jakarta Sans', sans-serif; outline:
     margin-left: 6px;
   }
 
-  /* Budgets: action buttons in topbar wrap */
   .topbar-right {
     gap: 8px !important;
   }
 
-  /* Budget topbar: hide extra buttons, rely on banner CTA */
   .topbar-budget-actions {
     display: none !important;
   }
@@ -2166,13 +2411,25 @@ input, select, textarea { font-family: 'Plus Jakarta Sans', sans-serif; outline:
     flex-direction: column;
     gap: 8px;
   }
+
+  /* Touch Ergonomics on Mobile */
+  .btn {
+    min-height: 40px;
+    font-size: 13px;
+  }
+
+  .form-input,
+  .form-select {
+    font-size: 15px !important;
+    min-height: 42px !important;
+  }
 }
 
 @media (max-width: 480px) {
   /* Settings tabs: even more compact */
   .settings-tab-nav button {
-    padding: 7px 11px !important;
-    font-size: 11px !important;
+    padding: 8px 12px !important;
+    font-size: 12px !important;
   }
 
   /* Savings category grid: 2 columns */
@@ -2181,14 +2438,15 @@ input, select, textarea { font-family: 'Plus Jakarta Sans', sans-serif; outline:
     gap: 6px !important;
   }
 
-  /* EmergencyFund: 1 column for very small screens */
+  /* EmergencyFund: 2 columns */
   .ef-month-options {
     grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
   }
 
-  /* Bills table: must scroll horizontally */
-  .bills-table-wrapper .data-table {
-    min-width: 480px;
+  /* Navy banner button full width on very small screens */
+  .navy-banner-btn {
+    flex: 1 1 100% !important;
   }
 
   /* Help FAQ text size */
@@ -2453,3 +2711,32 @@ input, select, textarea { font-family: 'Plus Jakarta Sans', sans-serif; outline:
   --income-bg: rgba(16, 185, 129, 0.15);
   --expense-bg: rgba(244, 63, 94, 0.15);
 }
+
+/* =========================================
+   DARK MODE: MOBILE COMPONENTS ENHANCEMENTS
+   ========================================= */
+[data-theme="dark"] .bill-mobile-card {
+  background: #111A2C;
+  border-color: #1D2D47;
+}
+
+[data-theme="dark"] .bill-mobile-icon-box {
+  background: rgba(59, 130, 246, 0.15);
+  color: #93C5FD;
+}
+
+[data-theme="dark"] .bill-mobile-del-btn {
+  background: #152238;
+  border-color: #1E314F;
+  color: var(--text-muted);
+}
+
+[data-theme="dark"] .dashboard-mobile-tx-item {
+  border-color: var(--border-light);
+}
+
+[data-theme="dark"] .reports-mobile-filter-bar {
+  background: #0F172A;
+  border-color: #1E293B;
+}
+

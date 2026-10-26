@@ -8,7 +8,7 @@ import { notifyTransactionCreated, checkAndSendDailyReminder } from '../lib/noti
 
 export default function Transactions() {
   const { authFetch } = useAuth();
-  const { maskAmount } = usePrivacy();
+  const { maskAmount, isHidden, toggle: togglePrivacy } = usePrivacy();
   const [transactions, setTransactions] = useState([]);
   const [categories, setCategories] = useState([]);
   const [wallets, setWallets] = useState([]);
@@ -287,6 +287,23 @@ export default function Transactions() {
             <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--income-color)' }} />
             Data tersimpan
           </div>
+          <button
+            type="button"
+            onClick={togglePrivacy}
+            title={isHidden ? 'Tampilkan Nominal' : 'Sembunyikan Nominal'}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              color: 'var(--text-secondary)',
+              display: 'flex',
+              alignItems: 'center',
+              padding: 6,
+              borderRadius: 8,
+            }}
+          >
+            <Icon name={isHidden ? 'visibility_off' : 'visibility'} size={19} />
+          </button>
           <NotificationButton />
           <button
             id="add-transaction-btn"
@@ -458,25 +475,67 @@ export default function Transactions() {
           </div>
         </div>
 
-        {/* Filter bar & Tabs */}
-        {/* Filter bar & Tabs */}
-        <div className="card tx-filter-card" style={{ marginBottom: 20, padding: '16px 18px', borderRadius: 16 }}>
-          {/* Header Row: Daftar transaksi + Result Counter */}
+        {/* Filter bar & Tabs matching reference image */}
+        <div className="card tx-filter-card" style={{ marginBottom: 20, padding: '18px 20px', borderRadius: 16 }}>
+          {/* Row 1: Filter Pills on left, Result Counter on right */}
           <div
             style={{
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
               flexWrap: 'wrap',
-              gap: 8,
+              gap: 12,
               marginBottom: 14,
             }}
           >
-            <h2 style={{ fontSize: 16, fontWeight: 800, margin: 0, color: 'var(--text-primary)' }}>
-              Daftar transaksi
-            </h2>
+            {/* Filter Pills */}
+            <div className="tx-pills-row" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                className={`tx-pill ${filter.type === '' && filter.taxOnly !== 'with_tax' ? 'active' : ''}`}
+                onClick={() => setFilter((f) => ({ ...f, type: '', taxOnly: '' }))}
+              >
+                Semua Transaksi
+              </button>
+              <button
+                type="button"
+                className={`tx-pill ${filter.type === 'income' ? 'active' : ''}`}
+                onClick={() => setFilter((f) => ({ ...f, type: 'income', taxOnly: '' }))}
+              >
+                Pemasukan
+              </button>
+              <button
+                type="button"
+                className={`tx-pill ${filter.type === 'expense' ? 'active' : ''}`}
+                onClick={() => setFilter((f) => ({ ...f, type: 'expense', taxOnly: '' }))}
+              >
+                Pengeluaran
+              </button>
+              <button
+                type="button"
+                className={`tx-pill ${filter.taxOnly === 'with_tax' ? 'active' : ''}`}
+                onClick={() => setFilter((f) => ({ ...f, taxOnly: f.taxOnly === 'with_tax' ? '' : 'with_tax' }))}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+              >
+                <Icon name="tune" size={14} />
+                <span>Ada Pajak/Fee</span>
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    background: filter.taxOnly === 'with_tax' ? 'rgba(255,255,255,0.25)' : 'var(--bg-card2)',
+                    padding: '1px 6px',
+                    borderRadius: 10,
+                  }}
+                >
+                  {transactions.filter((t) => parseFloat(t.tax_amount || 0) > 0).length}
+                </span>
+              </button>
+            </div>
+
+            {/* Results count & Reset */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+              <span style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>
                 Menampilkan {displayTransactions.length} dari {transactions.length} transaksi
               </span>
               {(filter.type || filter.category_id || filter.wallet_id || filter.search || filter.taxOnly) && (
@@ -492,12 +551,12 @@ export default function Transactions() {
             </div>
           </div>
 
-          {/* Search Input with Search Icon */}
-          <div style={{ position: 'relative', marginBottom: 12 }}>
+          {/* Row 2: Full width Search Input with Search Icon */}
+          <div style={{ position: 'relative', marginBottom: 10 }}>
             <div
               style={{
                 position: 'absolute',
-                left: 12,
+                left: 14,
                 top: '50%',
                 transform: 'translateY(-50%)',
                 display: 'flex',
@@ -512,7 +571,15 @@ export default function Transactions() {
               type="text"
               placeholder="Cari keterangan atau kategori..."
               className="form-input"
-              style={{ paddingLeft: 38, width: '100%', height: 42, borderRadius: 10, fontSize: 13.5 }}
+              style={{
+                paddingLeft: 42,
+                width: '100%',
+                height: 40,
+                borderRadius: 8,
+                fontSize: 13.5,
+                background: 'var(--bg-card)',
+                border: '1px solid var(--border)',
+              }}
               value={filter.search}
               onChange={(e) => setFilter((f) => ({ ...f, search: e.target.value }))}
             />
@@ -522,7 +589,7 @@ export default function Transactions() {
                 onClick={() => setFilter((f) => ({ ...f, search: '' }))}
                 style={{
                   position: 'absolute',
-                  right: 10,
+                  right: 12,
                   top: '50%',
                   transform: 'translateY(-50%)',
                   background: 'none',
@@ -539,73 +606,52 @@ export default function Transactions() {
             )}
           </div>
 
-          {/* Filter Pills: Semua Transaksi, Pemasukan, Pengeluaran, Ada Pajak/Fee */}
-          <div className="tx-pills-row" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
-            <button
-              type="button"
-              className={`tx-pill ${filter.type === '' && filter.taxOnly !== 'with_tax' ? 'active' : ''}`}
-              onClick={() => setFilter((f) => ({ ...f, type: '', taxOnly: '' }))}
+          {/* Row 3: Full width Dropdown "Semua Dompet" */}
+          <div style={{ marginBottom: 10 }}>
+            <select
+              className="form-select tx-filter-select"
+              style={{
+                width: '100%',
+                height: 40,
+                borderRadius: 8,
+                fontSize: 13.5,
+                background: 'var(--bg-card)',
+                border: '1px solid var(--border)',
+              }}
+              value={filter.wallet_id}
+              onChange={(e) => setFilter((f) => ({ ...f, wallet_id: e.target.value }))}
             >
-              Semua Transaksi
-            </button>
-            <button
-              type="button"
-              className={`tx-pill ${filter.type === 'income' ? 'active' : ''}`}
-              onClick={() => setFilter((f) => ({ ...f, type: 'income', taxOnly: '' }))}
-            >
-              Pemasukan
-            </button>
-            <button
-              type="button"
-              className={`tx-pill ${filter.type === 'expense' ? 'active' : ''}`}
-              onClick={() => setFilter((f) => ({ ...f, type: 'expense', taxOnly: '' }))}
-            >
-              Pengeluaran
-            </button>
-            <button
-              type="button"
-              className={`tx-pill ${filter.taxOnly === 'with_tax' ? 'active' : ''}`}
-              onClick={() => setFilter((f) => ({ ...f, taxOnly: f.taxOnly === 'with_tax' ? '' : 'with_tax' }))}
-            >
-              Ada Pajak/Fee {transactions.filter((t) => parseFloat(t.tax_amount || 0) > 0).length}
-            </button>
+              <option value="">Semua Dompet</option>
+              {wallets.map((w) => (
+                <option key={w.id} value={w.id}>
+                  {w.name}
+                </option>
+              ))}
+            </select>
           </div>
 
-          {/* Dropdowns: Semua Dompet & Semua Kategori */}
-          <div className="tx-dropdowns-row" style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            {/* Dompet Dropdown */}
-            <div style={{ flex: 1, minWidth: 150 }}>
-              <select
-                className="form-select tx-filter-select"
-                style={{ width: '100%', height: 40, borderRadius: 10, fontSize: 13 }}
-                value={filter.wallet_id}
-                onChange={(e) => setFilter((f) => ({ ...f, wallet_id: e.target.value }))}
-              >
-                <option value="">Semua Dompet</option>
-                {wallets.map((w) => (
-                  <option key={w.id} value={w.id}>
-                    {w.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Kategori Dropdown */}
-            <div style={{ flex: 1, minWidth: 150 }}>
-              <select
-                className="form-select tx-filter-select"
-                style={{ width: '100%', height: 40, borderRadius: 10, fontSize: 13 }}
-                value={filter.category_id}
-                onChange={(e) => setFilter((f) => ({ ...f, category_id: e.target.value }))}
-              >
-                <option value="">Semua Kategori</option>
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.icon} {c.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+          {/* Row 4: Full width Dropdown "Semua Kategori" */}
+          <div>
+            <select
+              className="form-select tx-filter-select"
+              style={{
+                width: '100%',
+                height: 40,
+                borderRadius: 8,
+                fontSize: 13.5,
+                background: 'var(--bg-card)',
+                border: '1px solid var(--border)',
+              }}
+              value={filter.category_id}
+              onChange={(e) => setFilter((f) => ({ ...f, category_id: e.target.value }))}
+            >
+              <option value="">Semua Kategori</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.icon} {c.name}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 

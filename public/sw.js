@@ -1,5 +1,5 @@
-// Progressive Web App (PWA) Service Worker with Push Notification & Offline Support
-const CACHE_NAME = 'moneymanagement-v1';
+// Progressive Web App (PWA) Service Worker with Mobile Lock Screen Push Notification & Offline Support
+const CACHE_NAME = 'moneymanagement-v3';
 const PRECACHE_ASSETS = [
   '/',
   '/index.html',
@@ -71,7 +71,49 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
-// Handle notification click to focus or open web app
+// Listen to message from client to display lock screen notification
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SHOW_NOTIFICATION') {
+    const { title, options } = event.data;
+    const finalOptions = {
+      body: options.body || '',
+      icon: options.icon || '/icon-192.png',
+      badge: options.badge || '/icon-192.png',
+      tag: options.tag || `money-${Date.now()}`,
+      renotify: true,
+      vibrate: [300, 150, 300],
+      requireInteraction: false,
+      data: options.data || { url: '/transaksi' },
+      ...options,
+    };
+    event.waitUntil(self.registration.showNotification(title, finalOptions));
+  }
+});
+
+// Handle incoming push event from server or background
+self.addEventListener('push', (event) => {
+  let data = {};
+  if (event.data) {
+    try {
+      data = event.data.json();
+    } catch (e) {
+      data = { title: 'Money Management', body: event.data.text() };
+    }
+  }
+  const title = data.title || '⏰ Money Management';
+  const options = {
+    body: data.body || 'Pengingat pencatatan keuangan harian.',
+    icon: '/icon-192.png',
+    badge: '/icon-192.png',
+    tag: data.tag || `push-${Date.now()}`,
+    renotify: true,
+    vibrate: [300, 150, 300],
+    data: { url: data.url || '/transaksi' },
+  };
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+// Handle notification click from lock screen or status bar
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   const targetUrl = event.notification.data?.url || '/transaksi';

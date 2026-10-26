@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { usePWA } from '../context/PWAContext';
 import { useTheme } from '../context/ThemeContext';
@@ -13,7 +14,8 @@ import {
 } from '../lib/notifications';
 
 export default function Settings() {
-  const { user, updateUser, authFetch } = useAuth();
+  const { user, updateUser, authFetch, logout } = useAuth();
+  const navigate = useNavigate();
   const { openInstallModal, isInstalled, isIOS, deferredPrompt, installApp } = usePWA();
   const { isDark, setTheme } = useTheme();
   const [activeTab, setActiveTab] = useState('profile');
@@ -208,6 +210,11 @@ export default function Settings() {
     } finally {
       setProfileLoading(false);
     }
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate('/masuk', { replace: true });
   };
 
   // Handle Password Update
@@ -554,6 +561,23 @@ export default function Settings() {
                         Inisial avatar dihasilkan otomatis dari nama lengkap Anda.
                       </div>
                     </div>
+                  </div>
+
+                  <div className="settings-profile-logout">
+                    <div>
+                      <div className="settings-profile-logout-title">Keluar dari akun</div>
+                      <div className="settings-profile-logout-description">
+                        Akhiri sesi Money Management di perangkat ini.
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      className="settings-profile-logout-button"
+                      onClick={handleLogout}
+                    >
+                      <Icon name="logout" size={17} />
+                      <span>Keluar</span>
+                    </button>
                   </div>
 
                   {/* Form fields */}

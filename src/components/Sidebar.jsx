@@ -17,16 +17,9 @@ const NAV_ITEMS = [
 ];
 
 export default function Sidebar({ isOpen = false, onClose }) {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const { openInstallModal, isInstalled } = usePWA();
   const navigate = useNavigate();
-
-  const handleLogout = (e) => {
-    e?.stopPropagation?.();
-    onClose?.();
-    logout();
-    navigate('/masuk');
-  };
 
   const handleProfileClick = () => {
     onClose?.();
@@ -325,38 +318,6 @@ export default function Sidebar({ isOpen = false, onClose }) {
             </div>
           </div>
 
-          {/* Logout Button */}
-          <button
-            type="button"
-            onClick={handleLogout}
-            id="sidebar-logout-btn"
-            title="Klik untuk Keluar (Logout)"
-            aria-label="Logout"
-            style={{
-              background: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              padding: '6px',
-              borderRadius: 8,
-              color: 'var(--text-muted)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginLeft: 4,
-              flexShrink: 0,
-              transition: 'all 0.15s ease',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.color = 'var(--danger)';
-              e.currentTarget.style.background = 'var(--danger-bg)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.color = 'var(--text-muted)';
-              e.currentTarget.style.background = 'transparent';
-            }}
-          >
-            <Icon name="logout" size={18} />
-          </button>
         </div>
       </div>
     </aside>

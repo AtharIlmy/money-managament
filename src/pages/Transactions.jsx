@@ -901,6 +901,10 @@ export default function Transactions() {
           style={{ alignItems: 'center' }}
         >
           <div
+            className="transaction-create-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="transaction-create-title"
             onClick={(e) => e.stopPropagation()}
             style={{
               background: 'var(--bg-card)',
@@ -917,7 +921,7 @@ export default function Transactions() {
             }}
           >
             {/* Header */}
-            <div style={{
+            <div className="transaction-create-header" style={{
               display: 'flex',
               alignItems: 'flex-start',
               justifyContent: 'space-between',
@@ -957,7 +961,7 @@ export default function Transactions() {
                     {form.type === 'income' ? 'PEMASUKAN' : form.type === 'transfer' ? 'TRANSFER' : 'PENGELUARAN'}
                   </span>
                 </div>
-                <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.3px' }}>
+                <div id="transaction-create-title" style={{ fontSize: 20, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.3px' }}>
                   Catat Transaksi Baru
                 </div>
               </div>
@@ -986,7 +990,7 @@ export default function Transactions() {
             </div>
 
             {formError && (
-              <div style={{
+              <div className="transaction-create-error" style={{
                 margin: '12px 24px 0',
                 background: '#FEF2F2',
                 border: '1px solid #FECDD3',
@@ -1003,11 +1007,11 @@ export default function Transactions() {
               </div>
             )}
 
-            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, overflowY: 'auto' }}>
-              <div style={{ padding: '20px 24px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <form className="transaction-create-form" onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, overflowY: 'auto' }}>
+              <div className="transaction-create-form-content" style={{ padding: '20px 24px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
                 {/* Type Selector - 3 pill tabs */}
-                <div style={{
+                <div className="transaction-type-selector" style={{
                   display: 'grid',
                   gridTemplateColumns: '1fr 1fr 1fr',
                   gap: 6,
@@ -1052,7 +1056,7 @@ export default function Transactions() {
                 </div>
 
                 {/* Nominal Box */}
-                <div style={{
+                <div className="transaction-amount-panel" style={{
                   background: 'var(--bg-card2)',
                   border: '1.5px solid var(--border)',
                   borderRadius: 14,
@@ -1112,7 +1116,7 @@ export default function Transactions() {
                   </div>
 
                   {/* Quick add chips */}
-                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  <div className="transaction-quick-amounts" style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                     {[
                       { label: '+10 rb', val: 10000 },
                       { label: '+20 rb', val: 20000 },
@@ -1155,7 +1159,7 @@ export default function Transactions() {
                 </div>
 
                 {/* Akun/Dompet + Tanggal in 2 cols */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div className="transaction-wallet-date-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                   <div>
                     <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
                       <Icon name="account_balance_wallet" size={15} style={{ color: 'var(--text-muted)' }} />
@@ -1217,7 +1221,7 @@ export default function Transactions() {
                       <Icon name="label" size={15} style={{ color: 'var(--text-muted)' }} />
                       Kategori
                     </label>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+                    <div className="transaction-category-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
                       {filteredCategories.map((c) => {
                         const isSelected = String(form.category_id) === String(c.id);
                         const isIncome = form.type === 'income';
@@ -1265,7 +1269,7 @@ export default function Transactions() {
                     {form.category_id && (() => {
                       const sel = filteredCategories.find((c) => String(c.id) === String(form.category_id));
                       return sel ? (
-                        <div style={{
+                        <div className="transaction-tax-panel" style={{
                           marginTop: 8,
                           padding: '7px 12px',
                           background: 'var(--bg-card2)',
@@ -1403,7 +1407,7 @@ export default function Transactions() {
                 </div>
 
                 {/* Catatan */}
-                <div>
+                <div className="transaction-note-field">
                   <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
                     <Icon name="description" size={15} style={{ color: 'var(--text-muted)' }} />
                     Catatan (Opsional)
@@ -1427,7 +1431,7 @@ export default function Transactions() {
                 </div>
 
                 {/* Actions */}
-                <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
+                <div className="transaction-create-actions" style={{ display: 'flex', gap: 10, marginTop: 4 }}>
                   <button
                     type="button"
                     onClick={() => setShowModal(false)}

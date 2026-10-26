@@ -832,6 +832,138 @@ input, select, textarea { font-family: 'Plus Jakarta Sans', sans-serif; outline:
   display: flex; justify-content: flex-end; gap: 8px;
 }
 
+.transaction-create-modal {
+  width: min(100%, 480px) !important;
+  max-height: min(88vh, 820px) !important;
+  margin: 0 !important;
+  overflow: hidden !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 16px !important;
+  background: var(--bg-card) !important;
+  box-shadow: var(--shadow-lg) !important;
+}
+
+.transaction-create-header {
+  align-items: center !important;
+  padding: 16px 20px !important;
+}
+
+.transaction-create-header > div:first-child > div:first-child {
+  padding: 3px 9px !important;
+  margin-bottom: 6px !important;
+}
+
+.transaction-create-header > div:first-child > div:last-child {
+  font-size: 18px !important;
+}
+
+.transaction-create-error {
+  margin: 12px 20px 0 !important;
+  padding: 9px 12px !important;
+}
+
+.transaction-create-form {
+  min-height: 0;
+}
+
+.transaction-create-form-content {
+  gap: 14px !important;
+  padding: 16px 20px 20px !important;
+}
+
+.transaction-type-selector {
+  gap: 4px !important;
+  padding: 3px !important;
+  border-radius: 10px !important;
+}
+
+.transaction-type-selector button {
+  min-height: 40px;
+  padding: 8px 5px !important;
+  border-radius: 7px !important;
+  font-size: 12px !important;
+  box-shadow: none !important;
+}
+
+.transaction-amount-panel {
+  padding: 14px !important;
+  border-width: 1px !important;
+  border-radius: 12px !important;
+}
+
+.transaction-amount-panel > div:nth-child(2) {
+  margin-bottom: 10px !important;
+}
+
+.transaction-amount-panel input[type="number"] {
+  min-width: 0;
+  font-size: clamp(26px, 7vw, 32px) !important;
+}
+
+.transaction-quick-amounts {
+  gap: 6px !important;
+}
+
+.transaction-quick-amounts button {
+  padding: 5px 9px !important;
+  border-radius: 8px !important;
+  box-shadow: none !important;
+  font-size: 11px !important;
+}
+
+.transaction-wallet-date-grid {
+  gap: 10px !important;
+}
+
+.transaction-wallet-date-grid .form-select,
+.transaction-wallet-date-grid .form-input {
+  min-width: 0;
+  min-height: 42px !important;
+  padding: 8px 10px !important;
+  border-radius: 9px !important;
+  font-size: 13px !important;
+}
+
+.transaction-category-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 7px !important;
+}
+
+.transaction-category-grid button {
+  min-width: 0;
+  min-height: 40px;
+  padding: 7px 9px !important;
+  border-radius: 8px !important;
+  box-shadow: none !important;
+}
+
+.transaction-tax-panel {
+  padding: 11px 12px !important;
+  border-radius: 10px !important;
+}
+
+.transaction-tax-panel .form-input,
+.transaction-note-field .form-input {
+  min-height: 42px !important;
+  padding: 8px 10px !important;
+  border-radius: 8px !important;
+}
+
+.transaction-create-actions {
+  gap: 8px !important;
+  margin-top: 0 !important;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-light);
+}
+
+.transaction-create-actions button {
+  min-height: 44px;
+  padding: 10px 12px !important;
+  border-radius: 9px !important;
+  box-shadow: none !important;
+  font-size: 13px !important;
+}
+
 /* AUTH PAGES (CLEAN CENTERED CARD DESIGN) */
 .auth-page {
   min-height: 100vh;
@@ -1958,6 +2090,55 @@ input, select, textarea { font-family: 'Plus Jakarta Sans', sans-serif; outline:
   align-items: start;
 }
 
+.settings-profile-logout {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 24px;
+  padding: 16px;
+  border: 1px solid color-mix(in srgb, var(--danger) 18%, var(--border));
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--danger) 4%, var(--bg-card));
+}
+
+.settings-profile-logout-title {
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.settings-profile-logout-description {
+  margin-top: 3px;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.settings-profile-logout-button {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 9px 14px;
+  border: 1px solid color-mix(in srgb, var(--danger) 25%, var(--border));
+  border-radius: 9px;
+  background: var(--bg-card);
+  color: var(--danger);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.settings-profile-logout-button:hover {
+  border-color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 8%, var(--bg-card));
+}
+
 /* Reports & Savings: month filter bar mobile */
 .reports-month-filter {
   display: flex;
@@ -2333,6 +2514,19 @@ input, select, textarea { font-family: 'Plus Jakarta Sans', sans-serif; outline:
 
   .settings-content-card {
     padding: 20px 16px !important;
+  }
+
+  .settings-profile-logout {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 20px;
+    padding: 14px;
+  }
+
+  .settings-profile-logout-button {
+    width: 100%;
+    min-height: 44px;
   }
 
   .settings-data-card > div:first-child {
@@ -3064,6 +3258,26 @@ input, select, textarea { font-family: 'Plus Jakarta Sans', sans-serif; outline:
     overflow-y: auto;
   }
 
+  .transaction-create-modal {
+    width: min(100%, 480px) !important;
+    max-height: calc(100dvh - 24px) !important;
+    margin: auto !important;
+  }
+
+  .transaction-create-header {
+    padding: 14px 16px !important;
+  }
+
+  .transaction-create-form-content {
+    gap: 12px !important;
+    padding: 14px 16px 16px !important;
+  }
+
+  .transaction-create-error {
+    margin-right: 16px !important;
+    margin-left: 16px !important;
+  }
+
   .modal {
     max-height: calc(100vh - 24px) !important;
     max-height: calc(100dvh - 24px) !important;
@@ -3096,6 +3310,13 @@ input, select, textarea { font-family: 'Plus Jakarta Sans', sans-serif; outline:
     width: 100% !important;
     max-width: 100% !important;
     padding: 18px !important;
+    border-radius: 14px !important;
+  }
+
+  .transaction-create-modal {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0 !important;
     border-radius: 14px !important;
   }
 

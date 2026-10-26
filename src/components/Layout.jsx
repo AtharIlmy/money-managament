@@ -14,6 +14,7 @@ const MOBILE_BOTTOM_NAV = [
   { href: '/transaksi',  icon: 'swap_vert',              label: 'Transaksi' },
   { href: '/dompet',     icon: 'account_balance_wallet', label: 'Dompet' },
   { href: '/anggaran',   icon: 'pie_chart',              label: 'Anggaran' },
+  { href: '/laporan',    icon: 'bar_chart',              label: 'Laporan' },
   { href: '/pengaturan', icon: 'settings',               label: 'Setelan' },
 ];
 
@@ -30,7 +31,8 @@ export default function Layout() {
     if (p.startsWith('/transaksi')) return 1;
     if (p.startsWith('/dompet')) return 2;
     if (p.startsWith('/anggaran')) return 3;
-    if (p.startsWith('/pengaturan')) return 4;
+    if (p.startsWith('/laporan')) return 4;
+    if (p.startsWith('/pengaturan')) return 5;
     return 0;
   };
   const activeIndex = getActiveIndex();
@@ -114,47 +116,10 @@ export default function Layout() {
         <Outlet />
       </main>
 
-      {/* ── Mobile Bottom Navigation — Curved Notch Magic Navbar ── */}
+      {/* Mobile bottom navigation */}
       <nav className="mobile-bottom-nav" aria-label="Navigasi Bawah Mobile">
         <div className="bottom-nav-inner">
-          {/* Animated Sliding Indicator with Notch & Floating Circle */}
-          <div
-            className="bottom-nav-indicator-track"
-            style={{
-              transform: `translateX(${activeIndex * 100}%)`,
-            }}
-          >
-            <div className="bottom-nav-notch-box">
-              {/* SVG curved scoop that cuts smoothly into the navbar */}
-              <svg
-                viewBox="0 0 88 28"
-                className="bottom-nav-notch-svg"
-                preserveAspectRatio="none"
-              >
-                <path
-                  d="M0,0 C20,0 24,24 44,24 C64,24 68,0 88,0 Z"
-                  style={{ fill: 'var(--bg)' }}
-                />
-                <path
-                  d="M0,0 C20,0 24,24 44,24 C64,24 68,0 88,0"
-                  fill="none"
-                  stroke="var(--border)"
-                  strokeWidth="1.2"
-                />
-              </svg>
-              {/* Floating White Circle with Active Icon */}
-              <div className="bottom-nav-floating-circle">
-                <Icon
-                  key={MOBILE_BOTTOM_NAV[activeIndex]?.icon}
-                  name={MOBILE_BOTTOM_NAV[activeIndex]?.icon}
-                  size={24}
-                  className="bottom-nav-floating-icon"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* 5 Tab Navigation Items */}
+          {/* Mobile navigation items */}
           {MOBILE_BOTTOM_NAV.map((item, idx) => {
             const isActive = idx === activeIndex;
             return (
@@ -165,8 +130,8 @@ export default function Layout() {
                 onClick={() => setMobileSidebarOpen(false)}
                 aria-label={item.label}
               >
-                <div className="bottom-nav-static-icon">
-                  <Icon name={item.icon} size={22} />
+                <div className="bottom-nav-icon">
+                  <Icon name={item.icon} size={20} />
                 </div>
                 <span className="bottom-nav-label">{item.label}</span>
               </NavLink>

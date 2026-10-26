@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { usePWA } from '../context/PWAContext';
+import { useTheme } from '../context/ThemeContext';
 import Icon from '../components/Icon';
 import NotificationButton from '../components/NotificationButton';
 import {
@@ -14,6 +15,7 @@ import {
 export default function Settings() {
   const { user, updateUser, authFetch } = useAuth();
   const { openInstallModal, isInstalled, isIOS, deferredPrompt, installApp } = usePWA();
+  const { isDark, setTheme } = useTheme();
   const [activeTab, setActiveTab] = useState('profile');
 
   // Profile form state
@@ -36,25 +38,22 @@ export default function Settings() {
 
   // Preferences state (stored in localStorage)
   const [preferences, setPreferences] = useState(() => {
+    const defaults = {
+      budgetCycleDay: '1',
+      dateFormat: 'DD/MM/YYYY',
+      hideBalanceDashboard: false,
+      defaultTxType: 'expense',
+      rounding: 'none',
+    };
+
     try {
       const saved = localStorage.getItem('user_finance_preferences');
-      return saved
-        ? JSON.parse(saved)
-        : {
-            budgetCycleDay: '1',
-            dateFormat: 'DD/MM/YYYY',
-            hideBalanceDashboard: false,
-            defaultTxType: 'expense',
-            rounding: 'none',
-          };
+      const parsed = saved ? JSON.parse(saved) : {};
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+        ? { ...defaults, ...parsed }
+        : defaults;
     } catch {
-      return {
-        budgetCycleDay: '1',
-        dateFormat: 'DD/MM/YYYY',
-        hideBalanceDashboard: false,
-        defaultTxType: 'expense',
-        rounding: 'none',
-      };
+      return defaults;
     }
   });
   const [prefSaved, setPrefSaved] = useState(false);
@@ -454,7 +453,15 @@ export default function Settings() {
                   <button
                     key={tab.id}
                     type="button"
-                    onClick={() => setActiveTab(tab.id)}
+                    className={`settings-tab-button${isActive ? ' active' : ''}`}
+                    onClick={(event) => {
+                      setActiveTab(tab.id);
+                      event.currentTarget.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'nearest',
+                        inline: 'nearest',
+                      });
+                    }}
                     style={{
                       width: '100%',
                       display: 'flex',
@@ -498,7 +505,7 @@ export default function Settings() {
           <div>
             {/* TAB 1: PROFIL PENGGUNA */}
             {activeTab === 'profile' && (
-              <div className="card" style={{ padding: '28px 32px', borderRadius: 16 }}>
+              <div className="card settings-content-card" style={{ padding: '28px 32px', borderRadius: 16 }}>
                 <div style={{ borderBottom: '1px solid var(--border-light)', paddingBottom: 16, marginBottom: 24 }}>
                   <h2 style={{ fontSize: 17, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.3px' }}>
                     Profil & Identitas
@@ -520,8 +527,9 @@ export default function Settings() {
 
                 <form onSubmit={handleProfileSubmit}>
                   {/* Avatar Section */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginBottom: 24, padding: '16px', background: 'var(--bg-card2)', borderRadius: 12, border: '1px solid var(--border-light)' }}>
+                  <div className="settings-profile-avatar-row" style={{ display: 'flex', alignItems: 'center', gap: 20, marginBottom: 24, padding: '16px', background: 'var(--bg-card2)', borderRadius: 12, border: '1px solid var(--border-light)' }}>
                     <div
+                      className="settings-profile-avatar"
                       style={{
                         width: 56,
                         height: 56,
@@ -538,7 +546,7 @@ export default function Settings() {
                     >
                       {initials}
                     </div>
-                    <div>
+                    <div className="settings-profile-avatar-details">
                       <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text-primary)' }}>
                         Inisial Profil: {initials}
                       </div>
@@ -1324,7 +1332,7 @@ export default function Settings() {
 
             {/* TAB 5: CADANGAN & DATA */}
             {activeTab === 'data' && (
-              <div className="card" style={{ padding: '28px 32px', borderRadius: 16 }}>
+              <div className="card settings-data-card" style={{ padding: '28px 32px', borderRadius: 16 }}>
                 <div style={{ borderBottom: '1px solid var(--border-light)', paddingBottom: 16, marginBottom: 24 }}>
                   <h2 style={{ fontSize: 17, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.3px' }}>
                     Cadangan Data & Ekspor
@@ -1334,11 +1342,11 @@ export default function Settings() {
                   </p>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <div className="settings-data-list" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                   {/* Export CSV Card */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 24px', background: '#FAFBFD', borderRadius: 14, border: '1px solid var(--border)' }}>
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14.5, fontWeight: 700, color: 'var(--text-primary)' }}>
+                  <div className="settings-export-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 24px', background: '#FAFBFD', borderRadius: 14, border: '1px solid var(--border)' }}>
+                    <div className="settings-export-copy">
+                      <div className="settings-export-title" style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14.5, fontWeight: 700, color: 'var(--text-primary)' }}>
                         <Icon name="description" size={20} style={{ color: 'var(--primary)' }} />
                         <span>Ekspor Transaksi (.CSV)</span>
                       </div>
@@ -1348,7 +1356,7 @@ export default function Settings() {
                     </div>
                     <button
                       type="button"
-                      className="btn btn-primary"
+                      className="btn btn-primary settings-export-button"
                       onClick={handleExportCSV}
                       disabled={exportLoading}
                       style={{ padding: '9px 18px', fontSize: 12.5 }}
@@ -1359,20 +1367,20 @@ export default function Settings() {
                   </div>
 
                   {/* System & Storage Info Card */}
-                  <div style={{ padding: '20px 24px', background: 'var(--bg-card2)', borderRadius: 14, border: '1px solid var(--border-light)' }}>
+                  <div className="settings-storage-card" style={{ padding: '20px 24px', background: 'var(--bg-card2)', borderRadius: 14, border: '1px solid var(--border-light)' }}>
                     <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 12 }}>
                       Informasi Database & Penyimpanan
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
-                      <div style={{ padding: '12px 14px', background: '#FFFFFF', borderRadius: 10, border: '1px solid var(--border-light)' }}>
+                    <div className="settings-storage-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
+                      <div className="settings-storage-item" style={{ padding: '12px 14px', background: '#FFFFFF', borderRadius: 10, border: '1px solid var(--border-light)' }}>
                         <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600 }}>Tipe Database</div>
                         <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--primary)', marginTop: 2 }}>PostgreSQL</div>
                       </div>
-                      <div style={{ padding: '12px 14px', background: '#FFFFFF', borderRadius: 10, border: '1px solid var(--border-light)' }}>
+                      <div className="settings-storage-item" style={{ padding: '12px 14px', background: '#FFFFFF', borderRadius: 10, border: '1px solid var(--border-light)' }}>
                         <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600 }}>Status Sinkronisasi</div>
                         <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--income-color)', marginTop: 2 }}>Realtime Aktif</div>
                       </div>
-                      <div style={{ padding: '12px 14px', background: '#FFFFFF', borderRadius: 10, border: '1px solid var(--border-light)' }}>
+                      <div className="settings-storage-item" style={{ padding: '12px 14px', background: '#FFFFFF', borderRadius: 10, border: '1px solid var(--border-light)' }}>
                         <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600 }}>Protokol Enkripsi</div>
                         <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--primary)', marginTop: 2 }}>JWT + Bcrypt</div>
                       </div>
@@ -1418,6 +1426,7 @@ export default function Settings() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
                   {/* Hero App Banner */}
                   <div
+                    className="settings-app-hero"
                     style={{
                       background: 'linear-gradient(135deg, #0B1728 0%, #162B48 100%)',
                       borderRadius: 16,
@@ -1431,7 +1440,7 @@ export default function Settings() {
                       boxShadow: '0 8px 24px rgba(11,23,40,0.2)',
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 16, maxWidth: 500 }}>
+                    <div className="settings-app-hero-copy" style={{ display: 'flex', alignItems: 'center', gap: 16, maxWidth: 500 }}>
                       <img
                         src="/icon-192.png"
                         alt="Money Management App Icon"

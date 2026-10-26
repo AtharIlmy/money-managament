@@ -4,7 +4,12 @@ import { usePrivacy } from '../context/PrivacyContext';
 import { formatRupiah, formatDate, formatDateShort } from '../lib/utils';
 import Icon from '../components/Icon';
 import NotificationButton from '../components/NotificationButton';
-import { notifyTransactionCreated, checkAndSendDailyReminder } from '../lib/notifications';
+import {
+  getNotificationPermission,
+  notifyTransactionCreated,
+  requestNotificationPermission,
+  checkAndSendDailyReminder,
+} from '../lib/notifications';
 
 export default function Transactions() {
   const { authFetch } = useAuth();
@@ -123,6 +128,10 @@ export default function Transactions() {
 
     setSaving(true);
     try {
+      if (getNotificationPermission() === 'default') {
+        await requestNotificationPermission();
+      }
+
       const res = await authFetch('/api/transactions', {
         method: 'POST',
         body: JSON.stringify({
@@ -139,7 +148,7 @@ export default function Transactions() {
       if (res.ok) {
         // Notifikasi ke HP & hitung total pengeluaran hari ini
         const categoryObj = categories.find((c) => String(c.id) === String(form.category_id));
-        notifyTransactionCreated({
+        await notifyTransactionCreated({
           type: form.type,
           amount: finalTotal,
           categoryName: categoryObj?.name || form.description,

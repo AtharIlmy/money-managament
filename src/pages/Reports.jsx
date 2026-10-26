@@ -99,7 +99,7 @@ export default function Reports() {
   return (
     <>
       {/* Topbar matching reference */}
-      <div className="topbar">
+      <div className="topbar reports-topbar">
         <div className="topbar-left" style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <span style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 500 }}>
             Ruang personal
@@ -115,45 +115,12 @@ export default function Reports() {
             Data tersimpan
           </div>
           <NotificationButton />
-          <select
-            className="form-select"
-            style={{ width: '140px', padding: '6px 28px 6px 10px', fontSize: 13 }}
-            value={selectedMonth}
-            onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-          >
-            {MONTH_NAMES.map((name, i) => (
-              <option key={i} value={i + 1}>
-                {name}
-              </option>
-            ))}
-          </select>
-          <select
-            className="form-select"
-            style={{ width: '100px', padding: '6px 28px 6px 10px', fontSize: 13 }}
-            value={selectedYear}
-            onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-          >
-            {[selectedYear - 1, selectedYear, selectedYear + 1].map((y) => (
-              <option key={y} value={y}>
-                {y}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      <div className="page-content">
-        {/* Mobile / Small Screen Filter Toolbar */}
-        <div className="reports-mobile-filter-bar card" style={{ padding: '12px 14px', marginBottom: 14 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>
-              <Icon name="calendar_today" size={16} color="var(--primary)" />
-              <span>Pilih Periode:</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: '1 1 220px', justifyContent: 'flex-end' }}>
+          <div className="reports-period-controls reports-period-controls-desktop" aria-label="Filter periode laporan">
+            <label className="reports-period-field reports-period-field-month">
+              <span>Bulan</span>
               <select
-                className="form-select"
-                style={{ flex: 1, minWidth: 120, padding: '7px 28px 7px 10px', fontSize: 13 }}
+                className="form-select reports-period-select"
+                aria-label="Pilih bulan laporan"
                 value={selectedMonth}
                 onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
               >
@@ -161,9 +128,12 @@ export default function Reports() {
                   <option key={i} value={i + 1}>{name}</option>
                 ))}
               </select>
+            </label>
+            <label className="reports-period-field reports-period-field-year">
+              <span>Tahun</span>
               <select
-                className="form-select"
-                style={{ width: 90, padding: '7px 28px 7px 10px', fontSize: 13 }}
+                className="form-select reports-period-select"
+                aria-label="Pilih tahun laporan"
                 value={selectedYear}
                 onChange={(e) => setSelectedYear(parseInt(e.target.value))}
               >
@@ -171,7 +141,48 @@ export default function Reports() {
                   <option key={y} value={y}>{y}</option>
                 ))}
               </select>
-            </div>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div className="page-content">
+        {/* Mobile / Small Screen Filter Toolbar */}
+        <div className="reports-mobile-filter-bar card">
+          <div className="reports-period-heading">
+            <span className="reports-period-icon"><Icon name="calendar_today" size={17} /></span>
+            <span>
+              <strong>Periode laporan</strong>
+              <small>Pilih bulan dan tahun</small>
+            </span>
+          </div>
+          <div className="reports-period-controls-mobile">
+            <label className="reports-period-field reports-period-field-month">
+              <span>Bulan</span>
+              <select
+                className="form-select reports-period-select"
+                aria-label="Pilih bulan laporan"
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+              >
+                {MONTH_NAMES.map((name, i) => (
+                  <option key={i} value={i + 1}>{name}</option>
+                ))}
+              </select>
+            </label>
+            <label className="reports-period-field reports-period-field-year">
+              <span>Tahun</span>
+              <select
+                className="form-select reports-period-select"
+                aria-label="Pilih tahun laporan"
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+              >
+                {[selectedYear - 1, selectedYear, selectedYear + 1].map((y) => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+            </label>
           </div>
         </div>
 
@@ -215,7 +226,7 @@ export default function Reports() {
 
         {/* 5 Summary Stat Cards */}
         <div className="reports-stat-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 24 }}>
-          <div className="stat-card">
+          <div className="stat-card reports-summary-card reports-income-card">
             <div className="stat-card-label">
               <span>Total Pemasukan</span>
               <Icon name="payments" size={18} color="var(--income-color)" />
@@ -226,7 +237,7 @@ export default function Reports() {
             <div className="stat-card-change up">↑ Arus Masuk</div>
           </div>
 
-          <div className="stat-card">
+          <div className="stat-card reports-summary-card reports-expense-card">
             <div className="stat-card-label">
               <span>Total Pengeluaran</span>
               <Icon name="shopping_cart" size={18} color="var(--expense-color)" />
@@ -237,7 +248,7 @@ export default function Reports() {
             <div className="stat-card-change down">↓ Arus Keluar</div>
           </div>
 
-          <div className="stat-card">
+          <div className="stat-card reports-summary-card reports-tax-card">
             <div className="stat-card-label">
               <span>Pajak & Biaya Admin</span>
               <Icon name="receipt_long" size={18} color="#D97706" />
@@ -248,7 +259,7 @@ export default function Reports() {
             <div className="stat-card-change">Biaya layanan terpisah</div>
           </div>
 
-          <div className="stat-card">
+          <div className="stat-card reports-summary-card reports-savings-card">
             <div className="stat-card-label">
               <span>Tabungan Bersih</span>
               <Icon name="account_balance" size={18} color="var(--primary)" />
@@ -264,15 +275,22 @@ export default function Reports() {
             </div>
           </div>
 
-          <div className="stat-card">
-            <div className="stat-card-label">
-              <span>Rata-Rata Harian</span>
-              <Icon name="calendar_today" size={18} color="var(--text-secondary)" />
+          <div className="stat-card reports-summary-card reports-daily-card">
+            <div className="reports-daily-card-content">
+              <span className="reports-daily-card-icon">
+                <Icon name="calendar_today" size={20} />
+              </span>
+              <div className="reports-daily-card-copy">
+                <div className="reports-daily-card-title">Rata-rata harian</div>
+                <div className="reports-daily-card-caption">Pengeluaran per hari</div>
+              </div>
             </div>
-            <div className="stat-card-value" style={{ color: 'var(--text-primary)' }}>
-              {formatRupiah(avgDailyExpense)}
+            <div className="reports-daily-card-amount">
+              <div className="stat-card-value" style={{ color: 'var(--text-primary)' }}>
+                {formatRupiah(avgDailyExpense)}
+              </div>
+              <div className="reports-daily-card-change">/ hari belanja</div>
             </div>
-            <div className="stat-card-change">/ hari belanja</div>
           </div>
         </div>
 
@@ -285,7 +303,7 @@ export default function Reports() {
                 <div className="card-title">Perbandingan Pemasukan vs Pengeluaran</div>
                 <div className="card-subtitle">Tren bulanan tahun {selectedYear}</div>
               </div>
-              <div style={{ display: 'flex', gap: 12, fontSize: 12 }}>
+              <div className="reports-chart-legend" style={{ display: 'flex', gap: 12, fontSize: 12 }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <div style={{ width: 10, height: 10, background: '#0E2038', borderRadius: 2 }} /> Pemasukan
                 </span>

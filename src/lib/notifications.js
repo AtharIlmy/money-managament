@@ -287,7 +287,7 @@ export function scheduleLockScreenTestNotification(delaySeconds = 3, onCountdown
  * Notifikasi instan saat pengguna menginput transaksi baru.
  * Otomatis menambahkan pemberitahuan ke lonceng aplikasi & mengirim Web Push ke Lock Screen!
  */
-export function notifyTransactionCreated({
+export async function notifyTransactionCreated({
   type = 'expense',
   amount = 0,
   categoryName = '',
@@ -355,7 +355,7 @@ export function notifyTransactionCreated({
   });
 
   // 2. KIRIM KE STATUS BAR & LOCK SCREEN HP
-  sendPushNotification({
+  await sendPushNotification({
     title,
     body,
     tag: `tx-${Date.now()}`,

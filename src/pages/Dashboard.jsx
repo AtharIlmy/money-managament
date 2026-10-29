@@ -48,11 +48,13 @@ export default function Dashboard() {
   const { user, authFetch } = useAuth();
   const { isHidden, maskAmount } = usePrivacy();
   const [loading, setLoading] = useState(true);
-  const [dailyDate, setDailyDate] = useState(() => {
-    const now = new Date();
-    const localDate = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
-    return localDate.toISOString().slice(0, 10);
-  });
+  const today = new Date();
+  const todayDate = [
+    today.getFullYear(),
+    String(today.getMonth() + 1).padStart(2, '0'),
+    String(today.getDate()).padStart(2, '0'),
+  ].join('-');
+  const [dailyDate, setDailyDate] = useState(todayDate);
   const [dailyTransactions, setDailyTransactions] = useState([]);
   const [dailyLoading, setDailyLoading] = useState(true);
   const [dailyError, setDailyError] = useState('');
@@ -249,6 +251,16 @@ export default function Dashboard() {
     month: 'long',
     year: 'numeric',
   }).format(new Date(`${dailyDate}T12:00:00`));
+  const shiftDailyDate = (offset) => {
+    const date = new Date(`${dailyDate}T12:00:00`);
+    date.setDate(date.getDate() + offset);
+    const nextDate = [
+      date.getFullYear(),
+      String(date.getMonth() + 1).padStart(2, '0'),
+      String(date.getDate()).padStart(2, '0'),
+    ].join('-');
+    if (nextDate <= todayDate) setDailyDate(nextDate);
+  };
 
   return (
     <>
@@ -573,15 +585,48 @@ export default function Dashboard() {
               <h2 id="daily-recap-title">Rekap harian</h2>
               <p>{dailyDateLabel}</p>
             </div>
-            <label className="dashboard-daily-date">
-              <Icon name="calendar_today" size={17} aria-hidden="true" />
-              <input
-                type="date"
-                value={dailyDate}
-                onChange={(event) => setDailyDate(event.target.value)}
-                aria-label="Pilih tanggal rekap harian"
-              />
-            </label>
+            <div className="dashboard-daily-history-controls" aria-label="Navigasi riwayat harian">
+              <button
+                type="button"
+                className="dashboard-daily-history-arrow"
+                onClick={() => shiftDailyDate(-1)}
+                aria-label="Lihat hari sebelumnya"
+                title="Hari sebelumnya"
+              >
+                <Icon name="chevron_left" size={20} />
+              </button>
+              <label className="dashboard-daily-date">
+                <Icon name="calendar_today" size={17} aria-hidden="true" />
+                <input
+                  type="date"
+                  value={dailyDate}
+                  max={todayDate}
+                  onChange={(event) => {
+                    if (event.target.value && event.target.value <= todayDate) setDailyDate(event.target.value);
+                  }}
+                  aria-label="Pilih tanggal rekap harian"
+                />
+              </label>
+              <button
+                type="button"
+                className="dashboard-daily-history-arrow"
+                onClick={() => shiftDailyDate(1)}
+                aria-label="Lihat hari berikutnya"
+                title="Hari berikutnya"
+                disabled={dailyDate >= todayDate}
+              >
+                <Icon name="chevron_right" size={20} />
+              </button>
+              {dailyDate !== todayDate && (
+                <button
+                  type="button"
+                  className="dashboard-daily-today-button"
+                  onClick={() => setDailyDate(todayDate)}
+                >
+                  Hari ini
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="dashboard-daily-totals">
@@ -609,10 +654,11 @@ export default function Dashboard() {
             ) : (
               dailyTransactions.map((tx) => {
                 const isIncome = tx.type === 'income';
+                const isTransfer = tx.type === 'transfer';
                 return (
                   <div className="dashboard-daily-transaction" key={tx.id}>
-                    <span className={`dashboard-daily-transaction-icon ${isIncome ? 'income' : 'expense'}`}>
-                      <Icon name={tx.category_icon || (isIncome ? 'south_west' : 'north_east')} size={18} />
+                    <span className={`dashboard-daily-transaction-icon ${isTransfer ? 'transfer' : isIncome ? 'income' : 'expense'}`}>
+                      <Icon name={tx.category_icon || (isTransfer ? 'swap_horiz' : isIncome ? 'south_west' : 'north_east')} size={18} />
                     </span>
                     <span className="dashboard-daily-transaction-info">
                       <strong>{tx.description || tx.category_name || 'Transaksi'}</strong>
@@ -621,8 +667,8 @@ export default function Dashboard() {
                         {tx.wallet_name ? ` · ${tx.wallet_name}` : ''}
                       </small>
                     </span>
-                    <strong className={`dashboard-daily-transaction-amount ${isIncome ? 'income' : 'expense'}`}>
-                      {isIncome ? '+' : '-'}{maskAmount(formatRupiah(tx.amount))}
+                    <strong className={`dashboard-daily-transaction-amount ${isTransfer ? 'transfer' : isIncome ? 'income' : 'expense'}`}>
+                      {isTransfer ? '' : isIncome ? '+' : '-'}{maskAmount(formatRupiah(tx.amount))}
                     </strong>
                   </div>
                 );

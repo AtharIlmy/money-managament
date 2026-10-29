@@ -2354,6 +2354,46 @@ input, select, textarea { font-family: 'Plus Jakarta Sans', sans-serif; outline:
   color: var(--text-secondary);
 }
 
+.dashboard-daily-history-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dashboard-daily-history-arrow,
+.dashboard-daily-today-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 38px;
+  min-height: 40px;
+  padding: 0 9px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.dashboard-daily-history-arrow:hover:not(:disabled),
+.dashboard-daily-today-button:hover {
+  border-color: var(--primary);
+  background: var(--primary-50);
+  color: var(--primary);
+}
+
+.dashboard-daily-history-arrow:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.dashboard-daily-today-button {
+  color: var(--primary);
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .dashboard-daily-date input {
   max-width: 150px;
   border: 0;
@@ -2917,6 +2957,21 @@ input, select, textarea { font-family: 'Plus Jakarta Sans', sans-serif; outline:
   .dashboard-daily-recap-header {
     align-items: flex-start;
     gap: 10px;
+  }
+
+  .dashboard-daily-history-controls {
+    gap: 4px;
+  }
+
+  .dashboard-daily-history-arrow,
+  .dashboard-daily-today-button {
+    min-width: 34px;
+    min-height: 38px;
+    padding: 0 6px;
+  }
+
+  .dashboard-daily-today-button {
+    font-size: 11px;
   }
 
   .dashboard-daily-recap-header h2 {

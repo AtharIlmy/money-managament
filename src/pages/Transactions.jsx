@@ -13,7 +13,7 @@ import {
 
 export default function Transactions() {
   const { authFetch } = useAuth();
-  const { maskAmount, isHidden, toggle: togglePrivacy } = usePrivacy();
+  const { maskAmount } = usePrivacy();
   const [transactions, setTransactions] = useState([]);
   const [categories, setCategories] = useState([]);
   const [wallets, setWallets] = useState([]);
@@ -296,23 +296,6 @@ export default function Transactions() {
             <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--income-color)' }} />
             Data tersimpan
           </div>
-          <button
-            type="button"
-            onClick={togglePrivacy}
-            title={isHidden ? 'Tampilkan Nominal' : 'Sembunyikan Nominal'}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              color: 'var(--text-secondary)',
-              display: 'flex',
-              alignItems: 'center',
-              padding: 6,
-              borderRadius: 8,
-            }}
-          >
-            <Icon name={isHidden ? 'visibility_off' : 'visibility'} size={19} />
-          </button>
           <NotificationButton />
           <button
             id="add-transaction-btn"
@@ -415,7 +398,7 @@ export default function Transactions() {
         </div>
 
         {/* DESKTOP ONLY: 4 Summary Stat Cards */}
-        <div className="stat-cards tx-desktop-stat-cards" style={{ marginBottom: 20, gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))' }}>
+        <div className="stat-cards tx-desktop-stat-cards" style={{ marginBottom: 20 }}>
           <div className="stat-card">
             <div className="stat-card-label">
               <span>Total Pemasukan</span>

@@ -48,6 +48,14 @@ export default function Dashboard() {
   const { user, authFetch } = useAuth();
   const { isHidden, maskAmount } = usePrivacy();
   const [loading, setLoading] = useState(true);
+  const [dailyDate, setDailyDate] = useState(() => {
+    const now = new Date();
+    const localDate = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
+    return localDate.toISOString().slice(0, 10);
+  });
+  const [dailyTransactions, setDailyTransactions] = useState([]);
+  const [dailyLoading, setDailyLoading] = useState(true);
+  const [dailyError, setDailyError] = useState('');
   const [rightWidgetTab, setRightWidgetTab] = useState('categories');
   const [data, setData] = useState({
     totalBalance: 0,
@@ -141,6 +149,40 @@ export default function Dashboard() {
     fetchDashboard();
   }, [selectedPeriodOption]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchDailyTransactions = async () => {
+      setDailyLoading(true);
+      setDailyError('');
+      setDailyTransactions([]);
+      try {
+        const res = await authFetch(`/api/transactions?date=${dailyDate}&limit=500`);
+        if (!res.ok) {
+          throw new Error('Gagal memuat rekap harian.');
+        }
+        const result = await res.json();
+        if (!Array.isArray(result)) {
+          throw new Error('Data rekap harian tidak valid.');
+        }
+        if (!cancelled) setDailyTransactions(result);
+      } catch (err) {
+        console.error('Failed to load daily transactions:', err);
+        if (!cancelled) {
+          setDailyTransactions([]);
+          setDailyError(err.message || 'Gagal memuat rekap harian.');
+        }
+      } finally {
+        if (!cancelled) setDailyLoading(false);
+      }
+    };
+
+    fetchDailyTransactions();
+    return () => {
+      cancelled = true;
+    };
+  }, [dailyDate]);
+
   const {
     totalBalance,
     monthlyIncome,
@@ -195,6 +237,18 @@ export default function Dashboard() {
   const budgetProgressPercent = totalBudgetLimit > 0 ? Math.min(100, Math.round((totalBudgetSpent / totalBudgetLimit) * 100)) : 0;
 
   const txList = recentTransactions || [];
+  const dailyIncome = dailyTransactions
+    .filter((tx) => tx.type === 'income')
+    .reduce((sum, tx) => sum + (parseFloat(tx.amount) || 0), 0);
+  const dailyExpense = dailyTransactions
+    .filter((tx) => tx.type === 'expense')
+    .reduce((sum, tx) => sum + (parseFloat(tx.amount) || 0), 0);
+  const dailyDateLabel = new Intl.DateTimeFormat('id-ID', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  }).format(new Date(`${dailyDate}T12:00:00`));
 
   return (
     <>
@@ -512,6 +566,70 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
+
+        <section className="card dashboard-daily-recap" aria-labelledby="daily-recap-title">
+          <div className="dashboard-daily-recap-header">
+            <div>
+              <h2 id="daily-recap-title">Rekap harian</h2>
+              <p>{dailyDateLabel}</p>
+            </div>
+            <label className="dashboard-daily-date">
+              <Icon name="calendar_today" size={17} aria-hidden="true" />
+              <input
+                type="date"
+                value={dailyDate}
+                onChange={(event) => setDailyDate(event.target.value)}
+                aria-label="Pilih tanggal rekap harian"
+              />
+            </label>
+          </div>
+
+          <div className="dashboard-daily-totals">
+            <div className="dashboard-daily-total dashboard-daily-income">
+              <span>Pemasukan</span>
+              <strong>{maskAmount(formatRupiah(dailyIncome))}</strong>
+            </div>
+            <div className="dashboard-daily-total dashboard-daily-expense">
+              <span>Pengeluaran</span>
+              <strong>{maskAmount(formatRupiah(dailyExpense))}</strong>
+            </div>
+            <div className="dashboard-daily-total dashboard-daily-net">
+              <span>Selisih</span>
+              <strong>{maskAmount(formatRupiah(dailyIncome - dailyExpense))}</strong>
+            </div>
+          </div>
+
+          <div className="dashboard-daily-transactions">
+            {dailyLoading ? (
+              <div className="dashboard-daily-state">Memuat rekap harian...</div>
+            ) : dailyError ? (
+              <div className="dashboard-daily-state dashboard-daily-error">{dailyError}</div>
+            ) : dailyTransactions.length === 0 ? (
+              <div className="dashboard-daily-state">Belum ada transaksi pada tanggal ini.</div>
+            ) : (
+              dailyTransactions.map((tx) => {
+                const isIncome = tx.type === 'income';
+                return (
+                  <div className="dashboard-daily-transaction" key={tx.id}>
+                    <span className={`dashboard-daily-transaction-icon ${isIncome ? 'income' : 'expense'}`}>
+                      <Icon name={tx.category_icon || (isIncome ? 'south_west' : 'north_east')} size={18} />
+                    </span>
+                    <span className="dashboard-daily-transaction-info">
+                      <strong>{tx.description || tx.category_name || 'Transaksi'}</strong>
+                      <small>
+                        {tx.type === 'transfer' ? 'Transfer' : tx.category_name || 'Tanpa kategori'}
+                        {tx.wallet_name ? ` · ${tx.wallet_name}` : ''}
+                      </small>
+                    </span>
+                    <strong className={`dashboard-daily-transaction-amount ${isIncome ? 'income' : 'expense'}`}>
+                      {isIncome ? '+' : '-'}{maskAmount(formatRupiah(tx.amount))}
+                    </strong>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </section>
 
         {/* Middle Section: 2 Columns Grid (~62% Arus Kas vs ~38% Ringkasan Anggaran) */}
         <div className="dashboard-mid-grid grid-2-1" style={{ gap: 14, marginBottom: 14 }}>

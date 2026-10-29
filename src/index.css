@@ -1399,9 +1399,30 @@ input, select, textarea { font-family: 'Plus Jakarta Sans', sans-serif; outline:
   display: none !important;
 }
 
-.tx-desktop-stat-cards,
 .tx-desktop-table-card {
   display: block;
+}
+
+.tx-desktop-stat-cards {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.tx-desktop-stat-cards .stat-card {
+  min-width: 0;
+  padding: 16px;
+}
+
+.tx-desktop-stat-cards .stat-card-value {
+  font-size: clamp(17px, 1.6vw, 21px);
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 769px) and (max-width: 1100px) {
+  .tx-desktop-stat-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 /* Transaction Filter Pills (Desktop & Mobile) */
@@ -1996,7 +2017,6 @@ input, select, textarea { font-family: 'Plus Jakarta Sans', sans-serif; outline:
   .dashboard-mid-grid,
   .wallet-mid-grid,
   .settings-layout-grid,
-  .help-layout-grid,
   .transaction-filter-grid {
     grid-template-columns: 1fr !important;
   }
@@ -2081,9 +2101,8 @@ input, select, textarea { font-family: 'Plus Jakarta Sans', sans-serif; outline:
    PAGE-SPECIFIC LAYOUT GRID DEFINITIONS
    ========================================= */
 
-/* Settings & Help: sidebar + main 2-column layout */
-.settings-layout-grid,
-.help-layout-grid {
+/* Settings: sidebar + main 2-column layout */
+.settings-layout-grid {
   display: grid;
   grid-template-columns: 220px 1fr;
   gap: 24px;
@@ -2297,6 +2316,173 @@ input, select, textarea { font-family: 'Plus Jakarta Sans', sans-serif; outline:
   display: block;
 }
 
+.dashboard-daily-recap {
+  margin-bottom: 14px;
+  padding: 18px 20px;
+}
+
+.dashboard-daily-recap-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.dashboard-daily-recap-header h2 {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.dashboard-daily-recap-header p {
+  margin: 4px 0 0;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.dashboard-daily-date {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--bg-card);
+  color: var(--text-secondary);
+}
+
+.dashboard-daily-date input {
+  max-width: 150px;
+  border: 0;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 12px;
+}
+
+.dashboard-daily-totals {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.dashboard-daily-total {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  padding: 11px 13px;
+  border: 1px solid var(--border-light);
+  border-radius: 10px;
+  background: var(--bg-card2);
+}
+
+.dashboard-daily-total span {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.dashboard-daily-total strong {
+  overflow-wrap: anywhere;
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.dashboard-daily-income strong {
+  color: var(--income-color);
+}
+
+.dashboard-daily-expense strong {
+  color: var(--expense-color);
+}
+
+.dashboard-daily-transactions {
+  display: grid;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.dashboard-daily-transaction {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+  padding: 10px 2px;
+  border-top: 1px solid var(--border-light);
+}
+
+.dashboard-daily-transaction-icon {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  place-items: center;
+  border-radius: 10px;
+  background: var(--bg-card2);
+  color: var(--text-secondary);
+}
+
+.dashboard-daily-transaction-icon.income {
+  background: color-mix(in srgb, var(--income-color) 10%, var(--bg-card));
+  color: var(--income-color);
+}
+
+.dashboard-daily-transaction-icon.expense {
+  background: color-mix(in srgb, var(--expense-color) 9%, var(--bg-card));
+  color: var(--expense-color);
+}
+
+.dashboard-daily-transaction-info {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  gap: 3px;
+}
+
+.dashboard-daily-transaction-info strong {
+  overflow: hidden;
+  color: var(--text-primary);
+  font-size: 12.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dashboard-daily-transaction-info small {
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dashboard-daily-transaction-amount {
+  flex: 0 0 auto;
+  font-size: 12.5px;
+  text-align: right;
+}
+
+.dashboard-daily-transaction-amount.income {
+  color: var(--income-color);
+}
+
+.dashboard-daily-transaction-amount.expense {
+  color: var(--expense-color);
+}
+
+.dashboard-daily-state {
+  padding: 16px 8px;
+  border-top: 1px solid var(--border-light);
+  color: var(--text-muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+.dashboard-daily-error {
+  color: var(--danger);
+}
+
 /* Reports mobile toolbar */
 .reports-mobile-filter-bar {
   display: none;
@@ -2412,13 +2598,6 @@ input, select, textarea { font-family: 'Plus Jakarta Sans', sans-serif; outline:
   gap: 8px;
 }
 
-/* EmergencyFund: month option cards */
-.ef-month-options {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
-}
-
 /* Settings: vertical tabs on desktop */
 .settings-tab-nav {
   display: flex;
@@ -2434,13 +2613,8 @@ input, select, textarea { font-family: 'Plus Jakarta Sans', sans-serif; outline:
    ========================================= */
 
 @media (max-width: 1024px) {
-  .settings-layout-grid,
-  .help-layout-grid {
+  .settings-layout-grid {
     grid-template-columns: 200px 1fr;
-  }
-
-  .ef-month-options {
-    grid-template-columns: repeat(2, 1fr);
   }
 
   .savings-category-grid {
@@ -2449,9 +2623,8 @@ input, select, textarea { font-family: 'Plus Jakarta Sans', sans-serif; outline:
 }
 
 @media (max-width: 768px) {
-  /* Settings & Help: stack vertically */
-  .settings-layout-grid,
-  .help-layout-grid {
+  /* Settings: stack vertically */
+  .settings-layout-grid {
     grid-template-columns: 1fr !important;
   }
 
@@ -2737,13 +2910,64 @@ input, select, textarea { font-family: 'Plus Jakarta Sans', sans-serif; outline:
     flex-direction: column;
   }
 
-  /* Savings: category grid 2 columns on mobile */
-  .savings-category-grid {
-    grid-template-columns: repeat(2, 1fr) !important;
+  .dashboard-daily-recap {
+    padding: 15px !important;
   }
 
-  /* EmergencyFund: month options 2x2 on mobile */
-  .ef-month-options {
+  .dashboard-daily-recap-header {
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .dashboard-daily-recap-header h2 {
+    font-size: 14px;
+  }
+
+  .dashboard-daily-recap-header p {
+    font-size: 11px;
+  }
+
+  .dashboard-daily-date {
+    min-height: 38px;
+    gap: 5px;
+    padding: 0 7px;
+  }
+
+  .dashboard-daily-date input {
+    width: 124px;
+    font-size: 11px;
+  }
+
+  .dashboard-daily-totals {
+    gap: 7px;
+  }
+
+  .dashboard-daily-total {
+    padding: 9px;
+  }
+
+  .dashboard-daily-total span {
+    font-size: 10px;
+  }
+
+  .dashboard-daily-total strong {
+    font-size: 12px;
+  }
+
+  .dashboard-daily-transactions {
+    max-height: 280px;
+  }
+
+  .dashboard-daily-transaction {
+    gap: 8px;
+  }
+
+  .dashboard-daily-transaction-amount {
+    font-size: 11.5px;
+  }
+
+  /* Savings: category grid 2 columns on mobile */
+  .savings-category-grid {
     grid-template-columns: repeat(2, 1fr) !important;
   }
 
@@ -2756,19 +2980,6 @@ input, select, textarea { font-family: 'Plus Jakarta Sans', sans-serif; outline:
   .grid-2,
   .grid-3 {
     grid-template-columns: 1fr !important;
-  }
-
-  /* Help: category pills horizontal scroll */
-  .help-category-pills {
-    overflow-x: auto;
-    flex-wrap: nowrap !important;
-    -webkit-overflow-scrolling: touch;
-    padding-bottom: 6px;
-    scrollbar-width: none;
-  }
-
-  .help-category-pills::-webkit-scrollbar {
-    display: none;
   }
 
   /* Budget section header buttons stack cleanly */
@@ -2811,11 +3022,6 @@ input, select, textarea { font-family: 'Plus Jakarta Sans', sans-serif; outline:
     display: none !important;
   }
 
-  /* EmergencyFund: tips grid */
-  .ef-tips-grid {
-    grid-template-columns: 1fr !important;
-  }
-
   /* Savings: goal stat display */
   .savings-stat-row {
     flex-direction: column;
@@ -2848,20 +3054,9 @@ input, select, textarea { font-family: 'Plus Jakarta Sans', sans-serif; outline:
     gap: 6px !important;
   }
 
-  /* EmergencyFund: 2 columns */
-  .ef-month-options {
-    grid-template-columns: repeat(2, 1fr) !important;
-    gap: 8px !important;
-  }
-
   /* Navy banner button full width on very small screens */
   .navy-banner-btn {
     flex: 1 1 100% !important;
-  }
-
-  /* Help FAQ text size */
-  .help-faq-answer {
-    font-size: 13px;
   }
 
   /* Reports summary cards: 2 columns */

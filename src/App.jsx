@@ -16,8 +16,6 @@ import Savings from './pages/Savings';
 import Bills from './pages/Bills';
 import Reports from './pages/Reports';
 import Settings from './pages/Settings';
-import Help from './pages/Help';
-import EmergencyFund from './pages/EmergencyFund';
 
 export default function App() {
   return (
@@ -43,9 +41,7 @@ export default function App() {
               <Route path="/anggaran" element={<Budgets />} />
               <Route path="/tagihan" element={<Bills />} />
               <Route path="/laporan" element={<Reports />} />
-              <Route path="/dana-darurat" element={<EmergencyFund />} />
               <Route path="/pengaturan" element={<Settings />} />
-              <Route path="/bantuan" element={<Help />} />
             </Route>
 
             {/* Fallback */}

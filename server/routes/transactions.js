@@ -8,7 +8,7 @@ const router = express.Router();
 router.get('/', authenticate, async (req, res) => {
   try {
     const userId = req.user.id;
-    const { type, wallet_id, category_id, search, limit = 50 } = req.query;
+    const { type, wallet_id, category_id, search, date, limit = 50 } = req.query;
 
     let sql = `
       SELECT t.*, 
@@ -39,6 +39,20 @@ router.get('/', authenticate, async (req, res) => {
     if (search) {
       params.push(`%${search}%`);
       sql += ` AND (t.description ILIKE $${params.length} OR c.name ILIKE $${params.length})`;
+    }
+
+    if (date) {
+      if (typeof date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        return res.status(400).json({ error: 'Format tanggal tidak valid' });
+      }
+
+      const parsedDate = new Date(`${date}T00:00:00.000Z`);
+      if (Number.isNaN(parsedDate.getTime()) || parsedDate.toISOString().slice(0, 10) !== date) {
+        return res.status(400).json({ error: 'Tanggal tidak valid' });
+      }
+
+      params.push(date);
+      sql += ` AND t.date = $${params.length}`;
     }
 
     sql += ` ORDER BY t.date DESC, t.created_at DESC LIMIT $${params.length + 1}`;

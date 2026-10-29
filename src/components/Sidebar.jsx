@@ -12,7 +12,6 @@ const NAV_ITEMS = [
   { href: '/anggaran', icon: 'pie_chart', label: 'Anggaran' },
   { href: '/tabungan', icon: 'savings', label: 'Tabungan' },
   { href: '/tagihan', icon: 'receipt_long', label: 'Tagihan' },
-  { href: '/dana-darurat', icon: 'shield', label: 'Dana Darurat' },
   { href: '/laporan', icon: 'bar_chart', label: 'Laporan' },
 ];
 
@@ -147,7 +146,7 @@ export default function Sidebar({ isOpen = false, onClose }) {
         </div>
       </div>
 
-      {/* Settings & Help */}
+      {/* Settings */}
       <div style={{ padding: '0 14px 10px' }}>
 
         <NavLink
@@ -182,46 +181,6 @@ export default function Sidebar({ isOpen = false, onClose }) {
                 style={{ color: isActive ? 'var(--nav-active-color)' : 'var(--text-secondary)' }}
               />
               <span>Pengaturan</span>
-              {isActive && (
-                <span style={{ marginLeft: 'auto', fontSize: 9, color: 'var(--nav-active-color)' }}>
-                  ●
-                </span>
-              )}
-            </>
-          )}
-        </NavLink>
-        <NavLink
-          to="/bantuan"
-          onClick={handleNavClick}
-          id="nav-bantuan"
-          className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
-          style={({ isActive }) =>
-            isActive
-              ? {
-                  background: 'var(--nav-active-bg)',
-                  color: 'var(--nav-active-color)',
-                  fontWeight: 700,
-                  boxShadow: 'none',
-                  border: '1px solid var(--nav-active-border)',
-                  padding: '7px 12px',
-                  fontSize: 13,
-                  marginBottom: 2,
-                }
-              : {
-                  padding: '7px 12px',
-                  fontSize: 13,
-                  marginBottom: 2,
-                }
-          }
-        >
-          {({ isActive }) => (
-            <>
-              <Icon
-                name="help"
-                size={17}
-                style={{ color: isActive ? 'var(--nav-active-color)' : 'var(--text-secondary)' }}
-              />
-              <span>Pusat bantuan</span>
               {isActive && (
                 <span style={{ marginLeft: 'auto', fontSize: 9, color: 'var(--nav-active-color)' }}>
                   ●

@@ -3807,3 +3807,157 @@ textarea:focus-visible {
   outline: 3px solid var(--accent-light);
   outline-offset: 2px;
 }
+
+/* A calmer, consistent dashboard surface */
+.dashboard-page {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.dashboard-page .dashboard-hero {
+  margin: 0 0 2px !important;
+  padding: 20px 22px !important;
+  border-radius: 14px !important;
+  box-shadow: var(--shadow-xs) !important;
+}
+
+.dashboard-page .dashboard-hero h1 {
+  margin: 0 0 5px !important;
+  font-size: 21px !important;
+  letter-spacing: -0.5px !important;
+}
+
+.dashboard-page .dashboard-hero p {
+  margin: 0 0 12px !important;
+  font-size: 12.5px !important;
+}
+
+.dashboard-page .dashboard-period-button {
+  min-height: 38px;
+  padding: 7px 11px !important;
+  border-radius: 9px !important;
+  box-shadow: none !important;
+}
+
+.dashboard-page .dashboard-period-button .material-symbols-rounded {
+  color: var(--primary) !important;
+}
+
+.dashboard-page .dashboard-balance-card {
+  min-width: 220px !important;
+  padding: 13px 15px !important;
+  border-radius: 11px !important;
+  box-shadow: none !important;
+}
+
+.dashboard-page .dashboard-balance-card > div:nth-child(2) {
+  margin: 5px 0 !important;
+  font-size: 21px !important;
+}
+
+.dashboard-page .dashboard-overview-grid {
+  gap: 12px !important;
+  margin: 0 !important;
+}
+
+.dashboard-page .dashboard-overview-card {
+  min-width: 0;
+  padding: 15px 16px !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 12px !important;
+  background: var(--bg-card) !important;
+  box-shadow: var(--shadow-xs) !important;
+  transform: none !important;
+}
+
+.dashboard-page .dashboard-overview-card:hover {
+  border-color: var(--border) !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+
+.dashboard-page .dashboard-overview-card > div:nth-child(2) {
+  margin: 9px 0 3px !important;
+  font-size: clamp(17px, 1.8vw, 21px) !important;
+  letter-spacing: -0.45px !important;
+}
+
+.dashboard-page .dashboard-mid-grid {
+  gap: 12px !important;
+  margin: 0 !important;
+}
+
+.dashboard-page .dashboard-chart-card,
+.dashboard-page .dashboard-widget-card,
+.dashboard-page .dashboard-recent-card {
+  border: 1px solid var(--border) !important;
+  border-radius: 12px !important;
+  background: var(--bg-card) !important;
+  box-shadow: var(--shadow-xs) !important;
+}
+
+.dashboard-page .dashboard-chart-card,
+.dashboard-page .dashboard-widget-card {
+  padding: 16px !important;
+}
+
+.dashboard-page .dashboard-recent-card {
+  margin-bottom: 0;
+}
+
+.dashboard-page .dashboard-daily-recap {
+  margin: 0 !important;
+  border-radius: 12px !important;
+  box-shadow: var(--shadow-xs) !important;
+}
+
+@media (max-width: 768px) {
+  .dashboard-page {
+    gap: 12px;
+  }
+
+  .dashboard-page .dashboard-hero {
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 14px;
+    padding: 16px !important;
+  }
+
+  .dashboard-page .dashboard-hero h1 {
+    font-size: 19px !important;
+  }
+
+  .dashboard-page .dashboard-hero p {
+    margin-bottom: 10px !important;
+  }
+
+  .dashboard-page .dashboard-hero .navy-banner-right {
+    width: 100%;
+  }
+
+  .dashboard-page .dashboard-balance-card {
+    width: 100%;
+    min-width: 0 !important;
+  }
+
+  .dashboard-page .dashboard-overview-grid {
+    gap: 10px !important;
+  }
+
+  .dashboard-page .dashboard-overview-card {
+    padding: 13px !important;
+  }
+
+  .dashboard-page .dashboard-overview-card > div:nth-child(2) {
+    font-size: clamp(15px, 4vw, 19px) !important;
+  }
+
+  .dashboard-page .dashboard-chart-card,
+  .dashboard-page .dashboard-widget-card {
+    padding: 14px !important;
+  }
+
+  .dashboard-page .dashboard-daily-recap {
+    padding: 14px !important;
+  }
+}

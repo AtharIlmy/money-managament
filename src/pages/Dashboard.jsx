@@ -291,10 +291,10 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="page-content">
+      <div className="page-content dashboard-page">
         {/* Signature Biru Dongker Hero Banner */}
         <div
-          className="navy-banner"
+          className="navy-banner dashboard-hero"
           style={{
             borderRadius: 14,
             padding: '18px 24px',
@@ -317,6 +317,7 @@ export default function Dashboard() {
             <div id="period-dropdown-wrapper" style={{ position: 'relative', display: 'inline-block', zIndex: 100 }}>
               <button
                 type="button"
+                className="dashboard-period-button"
                 onClick={() => setShowPeriodDropdown(!showPeriodDropdown)}
                 style={{
                   display: 'inline-flex',
@@ -396,6 +397,7 @@ export default function Dashboard() {
 
           <div className="navy-banner-right">
             <div
+              className="dashboard-balance-card"
               style={{
                 background: '#FAF8F5',
                 borderRadius: 14,
@@ -427,9 +429,9 @@ export default function Dashboard() {
         </div>
 
         {/* 4 Summary Cards Row - Perfectly Proportioned */}
-        <div className="dashboard-summary-grid stat-cards" style={{ gap: 14, marginBottom: 16 }}>
+        <div className="dashboard-summary-grid dashboard-overview-grid stat-cards" style={{ gap: 14, marginBottom: 16 }}>
           {/* 1. Pemasukan */}
-          <div className="card" style={{ padding: '16px 18px', borderRadius: 14, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', border: '1px solid var(--border)' }}>
+          <div className="card dashboard-overview-card" style={{ padding: '16px 18px', borderRadius: 14, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', border: '1px solid var(--border)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
                 <div style={{ width: 28, height: 28, borderRadius: 8, background: '#ECFDF5', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -464,7 +466,7 @@ export default function Dashboard() {
           </div>
 
           {/* 2. Pengeluaran */}
-          <div className="card" style={{ padding: '16px 18px', borderRadius: 14, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', border: '1px solid var(--border)' }}>
+          <div className="card dashboard-overview-card" style={{ padding: '16px 18px', borderRadius: 14, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', border: '1px solid var(--border)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
                 <div style={{ width: 28, height: 28, borderRadius: 8, background: '#FEF2F2', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -499,7 +501,7 @@ export default function Dashboard() {
           </div>
 
           {/* 3. Rata-rata Pengeluaran */}
-          <div className="card" style={{ padding: '16px 18px', borderRadius: 14, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', border: '1px solid var(--border)' }}>
+          <div className="card dashboard-overview-card" style={{ padding: '16px 18px', borderRadius: 14, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', border: '1px solid var(--border)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
                 <div style={{ width: 28, height: 28, borderRadius: 8, background: '#FFFBEB', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -535,7 +537,7 @@ export default function Dashboard() {
           </div>
 
           {/* 4. Pengeluaran Terbesar */}
-          <div className="card" style={{ padding: '16px 18px', borderRadius: 14, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', border: '1px solid var(--border)' }}>
+          <div className="card dashboard-overview-card" style={{ padding: '16px 18px', borderRadius: 14, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', border: '1px solid var(--border)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
                 <div style={{ width: 28, height: 28, borderRadius: 8, background: '#FFF1F2', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -567,7 +569,10 @@ export default function Dashboard() {
             <div style={{ fontSize: 11, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={topExpenseTransaction ? `Transaksi terbesar: ${topExpenseTransaction.description} (${formatRupiah(topExpenseTransaction.amount)})` : ''}>
               {topExpenseCategory ? (
                 <>
-                  <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{topExpenseCategory.icon || '🏷️'} {topExpenseCategory.name}</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontWeight: 600, color: 'var(--text-primary)' }}>
+                    <Icon name="sell" size={13} />
+                    {topExpenseCategory.name}
+                  </span>
                   {topExpenseTransaction && (
                     <span style={{ color: 'var(--text-muted)' }}>· Tx: {topExpenseTransaction.description}</span>
                   )}
@@ -680,7 +685,7 @@ export default function Dashboard() {
         {/* Middle Section: 2 Columns Grid (~62% Arus Kas vs ~38% Ringkasan Anggaran) */}
         <div className="dashboard-mid-grid grid-2-1" style={{ gap: 14, marginBottom: 14 }}>
           {/* Arus Kas Chart Card */}
-          <div className="card" style={{ padding: '16px 18px', borderRadius: 14 }}>
+          <div className="card dashboard-chart-card" style={{ padding: '16px 18px', borderRadius: 14 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
               <h3 style={{ fontSize: 14.5, fontWeight: 800, color: 'var(--text-primary)' }}>
                 Arus kas
@@ -753,7 +758,7 @@ export default function Dashboard() {
           </div>
 
           {/* Ringkasan Anggaran & Pos Terbesar Card */}
-          <div className="card" style={{ padding: '16px 18px', borderRadius: 14 }}>
+          <div className="card dashboard-widget-card" style={{ padding: '16px 18px', borderRadius: 14 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
               <h3 style={{ fontSize: 14, fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
                 {rightWidgetTab === 'categories' ? 'Kategori Terbesar' : 'Ringkasan Anggaran'}
@@ -863,7 +868,7 @@ export default function Dashboard() {
                                 flexShrink: 0,
                               }}
                             >
-                              {cat.icon || '🏷️'}
+                              <Icon name="sell" size={15} style={{ color: catColor }} />
                             </div>
                             <div style={{ minWidth: 0 }}>
                               <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -901,7 +906,7 @@ export default function Dashboard() {
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0, overflow: 'hidden' }}>
-                    <span>🔥</span>
+                    <Icon name="trending_up" size={13} />
                     <span>Tertinggi:</span>
                     <strong style={{ color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {topExpenseTransaction ? `${topExpenseTransaction.description} (${formatRupiah(topExpenseTransaction.amount)})` : '-'}
@@ -985,7 +990,7 @@ export default function Dashboard() {
         </div>
 
         {/* Bottom Section: Transaksi Terbaru Table Card */}
-        <div className="card" style={{ borderRadius: 14, overflow: 'hidden' }}>
+        <div className="card dashboard-recent-card" style={{ borderRadius: 14, overflow: 'hidden' }}>
           <div className="card-header" style={{ padding: '12px 18px', borderBottom: '1px solid var(--border-light)' }}>
             <h3 style={{ fontSize: 14.5, fontWeight: 800, color: 'var(--text-primary)' }}>
               Transaksi terbaru

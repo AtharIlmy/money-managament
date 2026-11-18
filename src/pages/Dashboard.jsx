@@ -1,11 +1,30 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { usePrivacy } from '../context/PrivacyContext';
 import { formatRupiah } from '../lib/utils';
-import Icon from '../components/Icon';
 import NotificationButton from '../components/NotificationButton';
 import ThemeToggleBtn from '../components/ThemeToggleBtn';
+import DashboardSidebar from '../components/DashboardSidebar';
+import DashboardBottomNav from '../components/DashboardBottomNav';
+import {
+  TrendingUp,
+  TrendingDown,
+  Wallet,
+  ArrowUpRight,
+  Sparkles,
+  ChevronDown,
+  Plus,
+  Utensils,
+  ShoppingBag,
+  Receipt,
+  Car,
+  CreditCard,
+  Layers,
+  ArrowRight,
+  ShieldCheck,
+  Calendar,
+} from 'lucide-react';
 import {
   Bar,
   BarChart,
@@ -16,19 +35,26 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 
-const CustomTooltip = ({ active, payload, label }) => {
+// Custom Tooltip for Recharts Cashflow Bar Chart
+const CashflowTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-white border border-[#DFE5EE] rounded-2xl p-3 shadow-lg text-xs font-sans">
-        <p className="font-bold text-[#191B3D] mb-1.5">{label}</p>
-        {payload.map((p, i) => (
-          <div key={i} className="flex items-center gap-2 mb-1">
-            <span
-              className="w-2 h-2 rounded-full inline-block"
-              style={{ backgroundColor: p.color }}
-            />
-            <span className="text-[#61647C]">{p.name}: </span>
-            <span className="font-bold text-[#191B3D]">{formatRupiah(p.value)}</span>
+      <div className="bg-white dark:bg-[#181B30] border border-[#DFE5EE] dark:border-gray-700 rounded-xl p-3 shadow-xl text-xs font-sans">
+        <p className="font-extrabold text-[#191B3D] dark:text-white mb-2">{label}</p>
+        {payload.map((item, index) => (
+          <div key={index} className="flex items-center justify-between gap-4 py-0.5">
+            <div className="flex items-center gap-1.5">
+              <span
+                className="w-2.5 h-2.5 rounded-full inline-block"
+                style={{ backgroundColor: item.color }}
+              />
+              <span className="text-[#61647C] dark:text-slate-300 font-medium">
+                {item.name}:
+              </span>
+            </div>
+            <span className="font-bold text-[#191B3D] dark:text-white">
+              {formatRupiah(item.value)}
+            </span>
           </div>
         ))}
       </div>
@@ -37,18 +63,29 @@ const CustomTooltip = ({ active, payload, label }) => {
   return null;
 };
 
-const getCategoryIcon = (categoryName) => {
+// Helper for Category Icons using lucide-react
+const getCategoryIconComponent = (categoryName) => {
   const name = (categoryName || '').toLowerCase();
-  if (name.includes('makan') || name.includes('minum') || name.includes('food')) return 'restaurant';
-  if (name.includes('belanja') || name.includes('shop')) return 'shopping_bag';
-  if (name.includes('tagihan') || name.includes('listrik') || name.includes('air')) return 'receipt_long';
-  if (name.includes('transport') || name.includes('bensin')) return 'directions_car';
-  if (name.includes('gaji') || name.includes('bonus')) return 'payments';
-  if (name.includes('lain')) return 'layers';
-  return 'layers';
+  if (name.includes('makan') || name.includes('minum') || name.includes('food')) {
+    return Utensils;
+  }
+  if (name.includes('belanja') || name.includes('shop')) {
+    return ShoppingBag;
+  }
+  if (name.includes('tagihan') || name.includes('listrik') || name.includes('air')) {
+    return Receipt;
+  }
+  if (name.includes('transport') || name.includes('bensin') || name.includes('kendaraan')) {
+    return Car;
+  }
+  if (name.includes('gaji') || name.includes('rekening') || name.includes('bank')) {
+    return CreditCard;
+  }
+  return Layers;
 };
 
-const formatTxDateShort = (dateStr) => {
+// Format short date in Indonesian (e.g. 19 Okt)
+const formatShortDate = (dateStr) => {
   if (!dateStr) return '';
   try {
     const d = new Date(dateStr);
@@ -58,34 +95,48 @@ const formatTxDateShort = (dateStr) => {
   }
 };
 
-export default function Dashboard() {
+/**
+ * Dashboard Component
+ * Supports:
+ * - Standalone mode (standalone = true): includes its own DashboardSidebar and DashboardBottomNav
+ * - Layout embedded mode (standalone = false, default): fits seamlessly inside App Layout
+ */
+export default function Dashboard({ standalone = false }) {
   const { user, authFetch } = useAuth();
-  const { isHidden: _isHidden, maskAmount: _maskAmount } = usePrivacy();
+  const { maskAmount } = usePrivacy();
+  const navigate = useNavigate();
   const [_loading, setLoading] = useState(true);
 
+  // Initial dummy state matching FigCraft MCP tokens
   const [data, setData] = useState({
     totalBalance: 654790,
     monthlyIncome: 1101200,
     monthlyExpense: 462002,
     totalSavings: 639198,
     dailyAvgExpense: 21000,
-    avgPerTransaction: 0,
-    expenseTxCount: 0,
-    daysElapsed: 22,
-    topExpenseCategory: { name: 'Lainnya', percentage: '33,31', total_amount: 153900, count: 1 },
     topExpenseCategories: [
-      { id: 1, name: 'Lain-lain', percentage: '33,31', total_amount: 153900 },
-      { id: 2, name: 'Makanan & Minuman', percentage: '31,71', total_amount: 146502 },
-      { id: 3, name: 'Belanja', percentage: '26,75', total_amount: 123600 },
+      { id: 1, name: 'Lain-lain', percentage: '33,31', total_amount: 153900, color: '#059669' },
+      { id: 2, name: 'Makanan & Minuman', percentage: '31,71', total_amount: 146502, color: '#4F46E5' },
+      { id: 3, name: 'Belanja', percentage: '26,75', total_amount: 123600, color: '#F59E0B' },
     ],
-    topExpenseTransaction: null,
-    trendData: [],
+    trendData: [
+      { month: 'Jan', income: 950000, expense: 420000 },
+      { month: 'Feb', income: 800000, expense: 500000 },
+      { month: 'Mar', income: 1050000, expense: 600000 },
+      { month: 'Apr', income: 900000, expense: 480000 },
+      { month: 'Mei', income: 1200000, expense: 700000 },
+      { month: 'Jun', income: 850000, expense: 530000 },
+      { month: 'Jul', income: 1100000, expense: 620000 },
+      { month: 'Agt', income: 980000, expense: 490000 },
+      { month: 'Sep', income: 1150000, expense: 580000 },
+      { month: 'Okt', income: 1101200, expense: 462002 },
+    ],
     recentTransactions: [
-      { id: 1, description: 'Mixue', category_name: 'Makanan & Minuman', wallet_name: 'Gopay', date: '2026-10-19', amount: 39000, type: 'expense' },
-      { id: 2, description: 'Sarapan', category_name: 'Makanan & Minuman', wallet_name: 'Rekening Utama', date: '2026-10-19', amount: 15000, type: 'expense' },
-      { id: 3, description: 'Parfume', category_name: 'Belanja', wallet_name: 'Rekening Utama', date: '2026-10-19', amount: 123600, type: 'expense' },
+      { id: 1, description: 'Mixue Ice Cream', category_name: 'Makanan & Minuman', wallet_name: 'Gopay', date: '2026-10-19', amount: 39000, type: 'expense' },
+      { id: 2, description: 'Sarapan Pagi', category_name: 'Makanan & Minuman', wallet_name: 'Rekening Utama', date: '2026-10-19', amount: 15000, type: 'expense' },
+      { id: 3, description: 'Parfume Original', category_name: 'Belanja', wallet_name: 'Rekening Utama', date: '2026-10-19', amount: 123600, type: 'expense' },
+      { id: 4, description: 'Freelance Design', category_name: 'Gaji', wallet_name: 'Rekening Utama', date: '2026-10-18', amount: 750000, type: 'income' },
     ],
-    budgets: [],
   });
 
   const INDONESIAN_MONTHS = useMemo(
@@ -101,18 +152,18 @@ export default function Dashboard() {
   const currentYear = now.getFullYear();
   const defaultPeriodName = `${INDONESIAN_MONTHS[currentMonthIdx]} ${currentYear}`;
 
-  const dynamicPeriodOptions = useMemo(() => {
-    const options = [];
+  const periodOptions = useMemo(() => {
+    const list = [];
     for (let i = 0; i < 6; i++) {
       const d = new Date(currentYear, currentMonthIdx - i, 1);
-      options.push({
+      list.push({
         label: `${INDONESIAN_MONTHS[d.getMonth()]} ${d.getFullYear()}`,
         month: d.getMonth() + 1,
         year: d.getFullYear(),
       });
     }
-    options.push({ label: `Tahun ${currentYear}`, month: null, year: currentYear });
-    return options;
+    list.push({ label: `Tahun ${currentYear}`, month: null, year: currentYear });
+    return list;
   }, [currentMonthIdx, currentYear, INDONESIAN_MONTHS]);
 
   const [selectedPeriod, setSelectedPeriod] = useState(defaultPeriodName);
@@ -123,23 +174,20 @@ export default function Dashboard() {
   }));
   const [showPeriodDropdown, setShowPeriodDropdown] = useState(false);
 
-  const [categoryType, setCategoryType] = useState('Pengeluaran');
-  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('Kategori');
-  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
-  const [showCategoryTypeDropdown, setShowCategoryTypeDropdown] = useState(false);
-
   useEffect(() => {
     const handleClickOutside = (e) => {
-      if (!e.target.closest('#period-dropdown-wrapper')) setShowPeriodDropdown(false);
-      if (!e.target.closest('#cat-filter-dropdown-wrapper')) setShowCategoryDropdown(false);
-      if (!e.target.closest('#cat-type-dropdown-wrapper')) setShowCategoryTypeDropdown(false);
+      if (!e.target.closest('#dashboard-period-dropdown')) {
+        setShowPeriodDropdown(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Fetch summary from API
   useEffect(() => {
     const fetchDashboard = async () => {
+      if (!authFetch) return;
       try {
         setLoading(true);
         let url = '/api/dashboard/summary';
@@ -153,533 +201,460 @@ export default function Dashboard() {
         const res = await authFetch(url);
         if (res.ok) {
           const json = await res.json();
-          setData((prev) => ({ ...prev, ...json }));
+          setData((prev) => ({
+            ...prev,
+            ...json,
+            trendData: json.trendData && json.trendData.length > 0 ? json.trendData : prev.trendData,
+            recentTransactions: json.recentTransactions && json.recentTransactions.length > 0 ? json.recentTransactions : prev.recentTransactions,
+          }));
         }
       } catch (err) {
-        console.error('Failed to load dashboard:', err);
+        console.error('Failed to load dashboard data:', err);
       } finally {
         setLoading(false);
       }
     };
     fetchDashboard();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedPeriodOption]);
+  }, [authFetch, selectedPeriodOption]);
+
+  const userName = user?.name ? user.name.split(' ')[0] : 'Muhammad';
+  const hour = new Date().getHours();
+  let greeting = 'Selamat Datang';
+  if (hour >= 4 && hour < 11) greeting = 'Selamat Pagi';
+  else if (hour >= 11 && hour < 15) greeting = 'Selamat Siang';
+  else if (hour >= 15 && hour < 18) greeting = 'Selamat Sore';
+  else greeting = 'Selamat Malam';
 
   const {
     totalBalance,
     monthlyIncome,
     monthlyExpense,
-    dailyAvgExpense,
-    daysElapsed,
-    topExpenseCategory,
+    totalSavings,
     topExpenseCategories,
+    trendData,
     recentTransactions,
   } = data;
 
-  const userName = user?.name ? user.name.split(' ')[0] : 'Muhammad';
-  const hour = new Date().getHours();
-  const greeting =
-    hour < 11
-      ? 'Selamat pagi'
-      : hour < 15
-      ? 'Selamat siang'
-      : hour < 18
-      ? 'Selamat sore'
-      : 'Selamat malam';
+  const netCashflow = monthlyIncome - monthlyExpense;
 
-  const displayTotalBalance = parseFloat(totalBalance || 0);
-  const displayIncome = parseFloat(monthlyIncome || 0);
-  const displayExpense = parseFloat(monthlyExpense || 0);
-  const surplus = displayIncome - displayExpense;
-
-  const currentDay = daysElapsed || Math.max(1, new Date().getDate());
-  const displayDailyAvg =
-    dailyAvgExpense !== undefined
-      ? parseFloat(dailyAvgExpense || 0)
-      : displayExpense > 0
-      ? Math.round(displayExpense / currentDay)
-      : 0;
-
-  const expenseRatio =
-    displayIncome > 0
-      ? ((displayExpense / displayIncome) * 100).toFixed(2).replace('.', ',')
-      : displayExpense > 0
-      ? '100'
-      : '0';
-
-  const cashFlowChartData = [
-    {
-      name: selectedPeriod.split(' ')[0].slice(0, 3),
-      Pemasukan: displayIncome,
-      Pengeluaran: displayExpense,
-    },
-  ];
-
-  const txList = recentTransactions || [];
-  const isExpenseType = categoryType === 'Pengeluaran';
-  const displayedCategories = isExpenseType ? (topExpenseCategories || []).slice(0, 3) : [];
-  const otherCategories = isExpenseType ? (topExpenseCategories || []).slice(3) : [];
-  const otherAmount = otherCategories.reduce(
-    (s, c) => s + (parseFloat(c.total_amount) || 0),
-    0
-  );
-  const totalAmountToShow = isExpenseType ? displayExpense : displayIncome;
-
-  return (
-    <div className="w-full min-h-screen bg-[#F2F3F8] dark:bg-[#0A0B14] font-sans antialiased text-[#191B3D] dark:text-slate-100 flex flex-col">
-      {/* ======================================================== */}
-      {/* DESKTOP / TABLET TOPBAR (Hidden on mobile < md)          */}
-      {/* ======================================================== */}
-      <header className="hidden md:flex items-center justify-between px-6 lg:px-8 h-16 bg-white dark:bg-[#13192B] border-b border-[#DFE5EE] dark:border-slate-800 sticky top-0 z-30 shadow-xs">
-        <div className="flex items-center gap-2 text-xs lg:text-sm text-[#61647C] dark:text-slate-400">
+  // Main Dashboard Content JSX
+  const mainContent = (
+    <div className="w-full min-h-screen bg-[#F2F3F8] dark:bg-[#0d0f18] text-[#191B3D] dark:text-slate-100 font-sans antialiased transition-colors duration-150 flex flex-col">
+      {/* ======================================================================= */}
+      {/* TOPBAR (DESKTOP & TABLET: md+)                                          */}
+      {/* ======================================================================= */}
+      <header className="hidden md:flex items-center justify-between px-6 lg:px-8 h-[68px] bg-white dark:bg-[#141721] border-b border-[#DFE5EE] dark:border-gray-800 sticky top-0 z-30 shadow-2xs">
+        <div className="flex items-center gap-2 text-xs text-[#7F8A9E] dark:text-slate-400">
           <span>Ruang personal</span>
           <span>·</span>
           <span className="font-semibold text-[#191B3D] dark:text-white">Dasbor</span>
         </div>
+
         <div className="flex items-center gap-5">
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse" />
             Data tersimpan
           </div>
           <ThemeToggleBtn />
           <NotificationButton />
-          <span className="text-xs text-[#61647C] dark:text-slate-400 font-medium">
+          <span className="text-xs text-[#191B3D] dark:text-slate-300 font-medium">
             {new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date())}
           </span>
         </div>
       </header>
 
-      {/* ======================================================== */}
-      {/* MAIN CONTENT CONTAINER (MOBILE FIRST: 390px default)    */}
-      {/* ======================================================== */}
-      <div className="flex-1 px-5 md:px-7 lg:px-8 pt-3 md:pt-6 pb-24 md:pb-8 max-w-7xl w-full mx-auto space-y-4 md:space-y-5">
-        {/* Mobile Subheader: Periode Halaman (Figma 1:2503) */}
-        <div className="md:hidden flex items-center justify-between text-[11px] text-[#61647C] dark:text-slate-400 leading-normal px-0.5">
+      {/* ======================================================================= */}
+      {/* MAIN CONTAINER                                                          */}
+      {/* ======================================================================= */}
+      <main className="flex-1 px-4 sm:px-6 lg:px-8 pt-5 md:pt-7 pb-24 md:pb-12 max-w-7xl w-full mx-auto space-y-6">
+        {/* Mobile Subheader Breadcrumb & Date */}
+        <div className="md:hidden flex items-center justify-between text-[11px] text-[#61647C] dark:text-slate-400 px-0.5">
           <span>Ruang personal · Dasbor</span>
           <span>
-            {new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date())}
+            {new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date())}
           </span>
         </div>
 
-        {/* Judul Halaman: Dasbor (Figma 1:2507) */}
-        <h1 className="text-2xl md:text-3xl font-bold text-[#191B3D] dark:text-white tracking-[-0.8px] leading-tight">
-          Dasbor
-        </h1>
+        {/* ===================================================================== */}
+        {/* ROW 1: HEADER BANNER (8 COLS) + KARTU SALDO UTAMA (4 COLS)            */}
+        {/* ===================================================================== */}
+        <section className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+          {/* Left Banner Header: Sapaan & Filter Periode */}
+          <div className="lg:col-span-8 bg-gradient-to-br from-[#ECEEF8] via-[#E6E9F5] to-[#DFE3F2] dark:from-[#181B30] dark:via-[#15172A] dark:to-[#101222] border border-[#D4DAEB] dark:border-indigo-950/60 rounded-2xl p-6 sm:p-7 flex flex-col justify-between shadow-xs space-y-5 relative overflow-hidden">
+            <div className="pointer-events-none absolute -top-16 -right-16 w-48 h-48 rounded-full bg-indigo-400/10 dark:bg-indigo-500/10 blur-3xl" aria-hidden="true" />
 
-        {/* ======================================================== */}
-        {/* BENTO ROW 1: HERO GREETING + SALDO BOX (Figma 1:2509)     */}
-        {/* ======================================================== */}
-        <section className="grid grid-cols-1 md:grid-cols-12 gap-3.5 md:gap-4 items-stretch">
-          {/* Card Sapaan Lavender (Figma 1:2510) */}
-          <div className="md:col-span-7 lg:col-span-8 bg-[#E7E7F4] dark:bg-[#1C2035] rounded-3xl p-5 md:p-6 lg:p-7 flex flex-col justify-between shadow-xs">
-            <div>
-              <h2 className="text-[23px] font-bold text-[#191B3D] dark:text-white tracking-[-0.7px] leading-[125%]">
-                {greeting}, {userName}
-              </h2>
-              <p className="text-[13px] text-[#61647C] dark:text-slate-400 leading-[145%] mt-1.5 mb-4">
-                Lihat ke mana uangmu mengalir, dan apa yang bisa tumbuh.
+            <div className="space-y-2 relative z-10">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-widest bg-indigo-600/10 text-indigo-700 dark:bg-indigo-400/15 dark:text-indigo-300 border border-indigo-600/15">
+                <Sparkles className="w-3 h-3 text-indigo-600 dark:text-indigo-400" />
+                <span>Pusat Keuangan Pribadi</span>
+              </div>
+              <h1 className="text-xl md:text-2xl lg:text-3xl font-extrabold text-[#191B3D] dark:text-white tracking-tight">
+                {greeting}, {userName}!
+              </h1>
+              <p className="text-xs md:text-sm text-[#61647C] dark:text-slate-300 leading-relaxed max-w-xl">
+                Pantau ke mana uangmu mengalir, jaga kestabilan anggaran, dan lihat apa yang bisa terus tumbuh.
               </p>
             </div>
 
-            {/* Pilihan Filter Dropdown (Figma 1:2514) */}
-            <div id="period-dropdown-wrapper" className="relative inline-block self-start">
-              <button
-                type="button"
-                onClick={() => setShowPeriodDropdown(!showPeriodDropdown)}
-                className="h-10 px-3.5 rounded-[10px] bg-white dark:bg-[#252A42] border border-[#DFE5EE] dark:border-slate-700 text-[12px] font-medium text-[#191B3D] dark:text-white flex items-center gap-3 shadow-2xs hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-              >
-                <span>{selectedPeriod}</span>
-                <Icon name={showPeriodDropdown ? 'expand_less' : 'expand_more'} size={15} style={{ color: '#61647C' }} />
-              </button>
-
-              {showPeriodDropdown && (
-                <div className="absolute top-full left-0 mt-2 w-48 bg-white dark:bg-[#1C2035] border border-[#DFE5EE] dark:border-slate-700 rounded-2xl shadow-xl p-1.5 z-30">
-                  {dynamicPeriodOptions.map((opt) => (
-                    <div
-                      key={opt.label}
-                      onClick={() => {
-                        setSelectedPeriod(opt.label);
-                        setSelectedPeriodOption(opt);
-                        setShowPeriodDropdown(false);
-                      }}
-                      className={`flex items-center justify-between px-3 py-2 text-xs rounded-xl cursor-pointer transition-colors ${
-                        selectedPeriod === opt.label
-                          ? 'bg-blue-50 dark:bg-blue-900/40 text-blue-600 font-bold'
-                          : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        {selectedPeriod === opt.label && <Icon name="check" size={14} color="var(--primary)" />}
-                        <span>{opt.label}</span>
-                      </div>
-                      {opt.label === defaultPeriodName && (
-                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800">
-                          Bulan ini
-                        </span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Card Saldo Midnight (Figma 1:2518) */}
-          <div className="md:col-span-5 lg:col-span-4 bg-[#191B3D] rounded-3xl p-6 text-white flex flex-col justify-between relative overflow-hidden shadow-xs min-h-[143px]">
-            {/* Progressive Blur Glow Ellipse */}
-            <div
-              className="absolute -right-12 -top-6 w-[280px] h-[160px] rounded-full pointer-events-none opacity-40 bg-gradient-to-br from-indigo-500 to-purple-600 blur-2xl"
-              aria-hidden="true"
-            />
-
-            <div className="relative z-10">
-              <span className="text-[12px] text-white/90 leading-[145%]">
-                Saldo tersedia
-              </span>
-              <div className="text-[34px] font-bold text-white tracking-[-0.7px] leading-[145%] my-1">
-                {formatRupiah(displayTotalBalance)}
-              </div>
-              <span className="text-[12px] text-white/80 leading-[145%]">
-                Total saldo dompet · Aktif
-              </span>
-            </div>
-          </div>
-        </section>
-
-        {/* ======================================================== */}
-        {/* BENTO ROW 2: 4 STAT CARDS (2x2 on Mobile, Figma 1:2522)   */}
-        {/* ======================================================== */}
-        <section className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
-          {/* Card 1: Pemasukan (Figma 1:2523) */}
-          <div className="bg-[#E7E7F4] dark:bg-[#1C2035] rounded-3xl p-4 md:p-4.5 flex flex-col justify-between shadow-xs min-h-[152px]">
-            <div className="flex flex-col items-start gap-1">
-              <span className="text-[11px] text-[#61647C] dark:text-slate-400 font-normal leading-[145%]">
-                Pemasukan
-              </span>
-              <svg className="w-[15px] h-[15px] text-[#191B3D] dark:text-white" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.7">
-                <path d="M10.625 4.375L4.375 10.625M4.375 10.625H9.687M4.375 10.625V5.313" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-              <span className="text-[10px] font-bold text-[#22755F] leading-none">
-                11%
-              </span>
-            </div>
-            <div className="mt-2">
-              <div className="text-[19px] font-bold text-[#191B3D] dark:text-white tracking-tight leading-tight">
-                {formatRupiah(displayIncome)}
-              </div>
-              <div className="text-[11px] text-[#61647C] dark:text-slate-400 leading-snug mt-1">
-                Total pemasukan bulan ini
-              </div>
-            </div>
-          </div>
-
-          {/* Card 2: Pengeluaran (Figma 1:2531) */}
-          <div className="bg-white dark:bg-[#13192B] border border-[#DFE5EE] dark:border-slate-800 rounded-3xl p-4 md:p-4.5 flex flex-col justify-between shadow-xs min-h-[152px]">
-            <div className="flex flex-col items-start gap-1">
-              <span className="text-[11px] text-[#61647C] dark:text-slate-400 font-normal leading-[145%]">
-                Pengeluaran
-              </span>
-              <svg className="w-[15px] h-[15px] text-[#61647C] dark:text-slate-400" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.7">
-                <path d="M4.375 10.625L10.625 4.375M10.625 4.375H5.313M10.625 4.375V9.687" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-              <span className="text-[10px] font-bold text-[#22755F] leading-none">
-                {expenseRatio}%
-              </span>
-            </div>
-            <div className="mt-2">
-              <div className="text-[19px] font-bold text-[#191B3D] dark:text-white tracking-tight leading-tight">
-                {formatRupiah(displayExpense)}
-              </div>
-              <div className="text-[11px] text-[#61647C] dark:text-slate-400 leading-snug mt-1">
-                Total pengeluaran bulan ini
-              </div>
-            </div>
-          </div>
-
-          {/* Card 3: Rata-rata Keluar (Figma 1:2539) */}
-          <div className="bg-white dark:bg-[#13192B] border border-[#DFE5EE] dark:border-slate-800 rounded-3xl p-4 md:p-4.5 flex flex-col justify-between shadow-xs min-h-[152px]">
-            <div className="flex flex-col items-start gap-1">
-              <span className="text-[11px] text-[#61647C] dark:text-slate-400 font-normal leading-[145%]">
-                Rata-rata Keluar
-              </span>
-              <svg className="w-[15px] h-[15px] text-[#61647C] dark:text-slate-400" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.7">
-                <path d="M1.875 5.625V8.125M1.875 6.875H4.375L8.75 10.625V3.125L4.375 6.875H1.875ZM11.25 5C11.875 5.625 11.875 8.125 11.25 8.75" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-              <span className="text-[11px] font-normal text-[#61647C] dark:text-slate-400 leading-none">
-                /hari
-              </span>
-            </div>
-            <div className="mt-2">
-              <div className="text-[19px] font-bold text-[#191B3D] dark:text-white tracking-tight leading-tight">
-                {formatRupiah(displayDailyAvg)}
-              </div>
-              <div className="text-[11px] text-[#61647C] dark:text-slate-400 leading-snug mt-1">
-                Hari ke-{currentDay} bulan ini
-              </div>
-            </div>
-          </div>
-
-          {/* Card 4: Pos Terbesar (Figma 1:2547) */}
-          <div className="bg-white dark:bg-[#13192B] border border-[#DFE5EE] dark:border-slate-800 rounded-3xl p-4 md:p-4.5 flex flex-col justify-between shadow-xs min-h-[152px]">
-            <div className="flex flex-col items-start gap-1">
-              <span className="text-[11px] text-[#61647C] dark:text-slate-400 font-normal leading-[145%]">
-                Pos Terbesar
-              </span>
-              <svg className="w-[15px] h-[15px] text-[#61647C] dark:text-slate-400" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.7">
-                <path d="M2.5 13.75V1.25M2.5 1.875H11.25C11.875 1.875 12.1875 2.5 11.875 3.125L10.625 5.625L11.875 8.125C12.1875 8.75 11.875 9.375 11.25 9.375H2.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-              <span className="text-[10px] font-bold text-[#22755F] leading-none">
-                {topExpenseCategory ? `${topExpenseCategory.percentage}%` : '33,31%'}
-              </span>
-            </div>
-            <div className="mt-2">
-              <div className="text-[19px] font-bold text-[#191B3D] dark:text-white tracking-tight leading-tight">
-                {topExpenseCategory ? formatRupiah(topExpenseCategory.total_amount) : 'Rp 153.900'}
-              </div>
-              <div className="text-[11px] text-[#61647C] dark:text-slate-400 leading-snug mt-1">
-                {topExpenseCategory ? `${topExpenseCategory.name} · ${topExpenseCategory.count || 1} transaksi` : 'Lainnya · 1 transaksi'}
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ======================================================== */}
-        {/* BENTO ROW 3: ARUS KAS & KATEGORI TERBESAR (Figma 1:2555)  */}
-        {/* ======================================================== */}
-        <section className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
-          {/* Card Arus Kas (Figma 1:2557) */}
-          <div className="lg:col-span-7 bg-white dark:bg-[#13192B] border border-[#DFE5EE] dark:border-slate-800 rounded-3xl px-4.5 py-6 md:p-7 shadow-xs flex flex-col justify-between">
-            <div>
-              <div>
-                <h3 className="text-[18px] font-bold text-[#191B3D] dark:text-white leading-tight">
-                  Arus kas
-                </h3>
-                <div className="text-[28px] font-bold text-[#191B3D] dark:text-white tracking-tight mt-1 leading-tight">
-                  {formatRupiah(surplus)}
-                </div>
-              </div>
-
-              <div className="flex items-center justify-end gap-3.5 text-[12px] text-[#61647C] dark:text-slate-400 mt-2 mb-1">
-                <span className="inline-flex items-center gap-1.5 font-medium">
-                  <span className="w-2 h-2 rounded-full bg-[#2E7D62]" />
-                  Pemasukan
-                </span>
-                <span className="inline-flex items-center gap-1.5 font-medium">
-                  <span className="w-2 h-2 rounded-full bg-[#8E8FB0]" />
-                  Pengeluaran
-                </span>
-              </div>
-
-              <p className="text-[11px] text-[#61647C] dark:text-slate-400 leading-[145%] mb-4">
-                Selisih pemasukan dikurangi pengeluaran
-              </p>
-            </div>
-
-            <div className="w-full h-52">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={cashFlowChartData}
-                  margin={{ top: 12, right: 10, left: -10, bottom: 0 }}
-                  barCategoryGap="40%"
+            {/* Filter Periode & Action Button */}
+            <div className="flex items-center gap-3 flex-wrap pt-2 relative z-10">
+              {/* Dropdown Periode */}
+              <div id="dashboard-period-dropdown" className="relative">
+                <button
+                  type="button"
+                  onClick={() => setShowPeriodDropdown(!showPeriodDropdown)}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white dark:bg-gray-800 border border-[#D4DAEB] dark:border-gray-700 text-xs font-bold text-[#191B3D] dark:text-slate-200 shadow-2xs hover:bg-slate-50 dark:hover:bg-gray-700/60 transition-all cursor-pointer"
                 >
-                  <CartesianGrid strokeDasharray="0" stroke="#F1F5F9" vertical={false} />
-                  <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#94A3B8' }} axisLine={false} tickLine={false} />
-                  <YAxis
-                    tick={{ fontSize: 10, fill: '#94A3B8' }}
-                    axisLine={false}
-                    tickLine={false}
-                    tickFormatter={(v) =>
-                      v === 0
-                        ? 'Rp 0'
-                        : v >= 1000000
-                        ? `Rp ${(v / 1000000).toFixed(v % 1000000 ? 1 : 0)} jt`
-                        : `Rp ${Math.round(v / 1000)} rb`
-                    }
-                  />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Bar dataKey="Pemasukan" fill="#2E7D62" radius={[4, 4, 0, 0]} maxBarSize={28} />
-                  <Bar dataKey="Pengeluaran" fill="#8E8FB0" radius={[4, 4, 0, 0]} maxBarSize={28} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
+                  <Calendar className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                  <span>{selectedPeriod}</span>
+                  <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                </button>
 
-          {/* Card Kategori Terbesar (Figma 1:2587) */}
-          <div className="lg:col-span-5 bg-white dark:bg-[#13192B] border border-[#DFE5EE] dark:border-slate-800 rounded-3xl px-4.5 py-6 md:p-7 shadow-xs flex flex-col justify-between">
-            <div>
-              <h3 className="text-[18px] font-bold text-[#191B3D] dark:text-white leading-tight mb-3">
-                Kategori Terbesar
-              </h3>
-
-              {/* Dua Tombol Pilihan Filter (Figma 1:2590) */}
-              <div className="flex items-center gap-2 mb-4">
-                <div id="cat-filter-dropdown-wrapper" className="relative">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowCategoryDropdown(!showCategoryDropdown);
-                      setShowCategoryTypeDropdown(false);
-                    }}
-                    className="h-10 px-3.5 rounded-[10px] border border-[#DFE5EE] dark:border-slate-700 bg-white dark:bg-[#1C2035] text-[12px] font-medium text-[#191B3D] dark:text-white flex items-center gap-2 shadow-2xs hover:bg-slate-50 transition-colors"
-                  >
-                    <span>{selectedCategoryFilter}</span>
-                    <Icon name={showCategoryDropdown ? 'expand_less' : 'expand_more'} size={15} style={{ color: '#61647C' }} />
-                  </button>
-                  {showCategoryDropdown && (
-                    <div className="absolute top-full left-0 mt-1.5 w-44 bg-white dark:bg-[#1C2035] border border-[#DFE5EE] dark:border-slate-700 rounded-xl shadow-xl p-1 z-30">
-                      {['Kategori', 'Makanan & Minuman', 'Belanja', 'Lain-lain'].map((opt) => (
-                        <div
-                          key={opt}
-                          onClick={() => {
-                            setSelectedCategoryFilter(opt);
-                            setShowCategoryDropdown(false);
-                          }}
-                          className="px-3 py-1.5 text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg cursor-pointer"
-                        >
-                          {opt}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div id="cat-type-dropdown-wrapper" className="relative">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowCategoryTypeDropdown(!showCategoryTypeDropdown);
-                      setShowCategoryDropdown(false);
-                    }}
-                    className="h-10 px-3.5 rounded-[10px] border border-[#DFE5EE] dark:border-slate-700 bg-white dark:bg-[#1C2035] text-[12px] font-medium text-[#191B3D] dark:text-white flex items-center gap-2 shadow-2xs hover:bg-slate-50 transition-colors"
-                  >
-                    <span>{categoryType}</span>
-                    <Icon name={showCategoryTypeDropdown ? 'expand_less' : 'expand_more'} size={15} style={{ color: '#61647C' }} />
-                  </button>
-                  {showCategoryTypeDropdown && (
-                    <div className="absolute top-full right-0 mt-1.5 w-36 bg-white dark:bg-[#1C2035] border border-[#DFE5EE] dark:border-slate-700 rounded-xl shadow-xl p-1 z-30">
-                      {['Pengeluaran', 'Pemasukan'].map((t) => (
-                        <div
-                          key={t}
-                          onClick={() => {
-                            setCategoryType(t);
-                            setShowCategoryTypeDropdown(false);
-                          }}
-                          className="px-3 py-1.5 text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg cursor-pointer"
-                        >
-                          {t}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Total Row */}
-              <div className="flex items-center justify-between text-xs mb-2">
-                <span className="font-bold text-[#61647C] dark:text-slate-400 uppercase tracking-wider text-[11px]">
-                  {categoryType === 'Pemasukan' ? 'TOTAL PEMASUKAN' : 'TOTAL PENGELUARAN'}
-                </span>
-                <span className="font-bold text-[#191B3D] dark:text-white text-[12px]">
-                  {formatRupiah(totalAmountToShow)}
-                </span>
-              </div>
-
-              {/* Alokasi Pengeluaran Multi-segmen Bar (Figma 1:2602) */}
-              <div className="w-full h-2 rounded-[4px] overflow-hidden flex gap-[3px] bg-slate-100 dark:bg-slate-800 mb-5">
-                <div className="h-full bg-[#2E7D62]" style={{ width: '33.31%' }} />
-                <div className="h-full bg-[#5B5F79]" style={{ width: '31.71%' }} />
-                <div className="h-full bg-[#A3BEAD]" style={{ width: '26.75%' }} />
-                <div className="h-full bg-slate-200 dark:bg-slate-700 flex-1" />
-              </div>
-
-              {/* Category list */}
-              <div className="space-y-3.5">
-                {displayedCategories.length === 0 ? (
-                  <div className="py-6 text-center text-xs text-slate-400">
-                    Belum ada data {categoryType.toLowerCase()} bulan ini.
+                {showPeriodDropdown && (
+                  <div className="absolute top-full left-0 mt-1.5 w-52 bg-white dark:bg-[#181B30] border border-[#DFE5EE] dark:border-gray-700 rounded-xl shadow-xl p-1.5 z-40 animate-fade-in">
+                    {periodOptions.map((opt) => (
+                      <button
+                        key={opt.label}
+                        type="button"
+                        onClick={() => {
+                          setSelectedPeriod(opt.label);
+                          setSelectedPeriodOption(opt);
+                          setShowPeriodDropdown(false);
+                        }}
+                        className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+                          selectedPeriod === opt.label
+                            ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-300 font-bold'
+                            : 'text-[#61647C] dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-gray-800'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
                   </div>
-                ) : (
-                  displayedCategories.map((cat, idx) => (
-                    <div key={cat.id || idx} className="flex items-center justify-between h-9">
-                      <div className="flex items-center gap-3">
-                        <div className="w-[34px] h-[34px] rounded-xl bg-[#F2F3F8] dark:bg-slate-800 flex items-center justify-center text-[#191B3D] dark:text-white shrink-0">
-                          <Icon name={getCategoryIcon(cat.name)} size={18} />
-                        </div>
-                        <div>
-                          <div className="text-[12px] font-bold text-[#191B3D] dark:text-white leading-tight">
-                            {cat.name}
-                          </div>
-                          <div className="text-[11px] text-[#61647C] dark:text-slate-400 leading-tight mt-0.5">
-                            {cat.percentage}%
-                          </div>
-                        </div>
-                      </div>
-                      <div className="text-[12px] font-bold text-[#191B3D] dark:text-white">
-                        {formatRupiah(cat.total_amount)}
-                      </div>
-                    </div>
-                  ))
                 )}
               </div>
+
+              {/* Quick Transaction Action Button */}
+              <Link
+                to="/transaksi"
+                className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#17193F] to-[#25285E] hover:from-[#1F2250] hover:to-[#2D3070] dark:from-indigo-600 dark:to-indigo-700 dark:hover:from-indigo-500 dark:hover:to-indigo-600 text-white text-xs font-bold shadow-sm hover:shadow-md transition-all cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Catat Transaksi</span>
+              </Link>
+            </div>
+          </div>
+
+          {/* Right Card: Kartu Saldo Utama (Gradasi Ungu Gelap) */}
+          <div className="lg:col-span-4 bg-gradient-to-br from-indigo-900 via-[#191B3D] to-indigo-950 text-white rounded-2xl p-6 sm:p-7 border border-indigo-800/40 shadow-md relative overflow-hidden flex flex-col justify-between space-y-4">
+            <div className="pointer-events-none absolute -bottom-12 -right-12 w-44 h-44 rounded-full bg-indigo-500/20 blur-2xl" aria-hidden="true" />
+
+            <div className="relative z-10 flex items-center justify-between">
+              <span className="text-[11px] font-extrabold tracking-wider text-indigo-200/90 uppercase">
+                TOTAL SALDO BERSIH
+              </span>
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block animate-pulse" />
+                Personal Aktif
+              </span>
             </div>
 
-            {/* Kategori Lainnya Footer */}
-            <div className="flex items-center justify-between text-[11px] pt-4 border-t border-slate-100 dark:border-slate-800 mt-5 text-[#61647C] dark:text-slate-400">
-              <span>{otherAmount > 0 ? `+ kategori lainnya (${formatRupiah(otherAmount)})` : `Total ${displayedCategories.length} kategori`}</span>
-              <Link to="/transaksi" className="font-bold text-[#191B3D] dark:text-white hover:text-blue-600 transition-colors">
-                Detail →
+            <div className="relative z-10 my-1">
+              <div className="text-2xl md:text-3xl font-extrabold text-white tracking-tight">
+                {maskAmount(formatRupiah(totalBalance))}
+              </div>
+              <p className="text-xs text-indigo-200/80 mt-1">
+                Saldo Tersedia di Seluruh Rekening &amp; E-Wallet
+              </p>
+            </div>
+
+            <div className="pt-3 border-t border-white/10 relative z-10 flex items-center justify-between text-xs">
+              <span className="text-indigo-200/90 font-medium">
+                Tabungan: {maskAmount(formatRupiah(totalSavings))}
+              </span>
+              <Link
+                to="/dompet"
+                className="text-white hover:text-indigo-200 font-bold flex items-center gap-1 group transition-colors"
+              >
+                <span>Kelola Dompet</span>
+                <ArrowUpRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
               </Link>
             </div>
           </div>
         </section>
 
-        {/* ======================================================== */}
-        {/* BENTO ROW 4: TRANSAKSI TERBARU (Figma 1:2634)             */}
-        {/* ======================================================== */}
-        <section className="bg-white dark:bg-[#13192B] border border-[#DFE5EE] dark:border-slate-800 rounded-3xl px-4.5 py-6 md:p-7 shadow-xs">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-[16px] font-bold text-[#191B3D] dark:text-white leading-tight">
-              Transaksi terbaru
-            </h3>
-            <Link
-              to="/transaksi"
-              className="text-[11px] font-medium text-[#61647C] dark:text-slate-400 hover:text-[#191B3D] transition-colors"
-            >
-              Semua transaksi →
-            </Link>
+        {/* ===================================================================== */}
+        {/* ROW 2: 3 KARTU STATISTIK KECIL DI TENGAH                              */}
+        {/* ===================================================================== */}
+        <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Card 1: Total Pemasukan */}
+          <div className="bg-white dark:bg-[#141721] border border-[#DFE5EE] dark:border-gray-800 rounded-2xl p-6 min-h-[145px] flex flex-col justify-center gap-2 shadow-2xs hover:shadow-xs transition-shadow">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold tracking-wider text-[#7F8A9E] dark:text-slate-400 uppercase">
+                TOTAL PEMASUKAN
+              </span>
+              <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                <TrendingUp className="w-4 h-4" />
+              </div>
+            </div>
+            <div className="text-xl font-extrabold text-emerald-600 dark:text-emerald-400">
+              {maskAmount(formatRupiah(monthlyIncome))}
+            </div>
+            <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+              <span className="font-semibold text-emerald-600 dark:text-emerald-400">+12.4%</span>
+              <span>dibandingkan bulan lalu</span>
+            </div>
           </div>
 
-          <div className="divide-y divide-slate-100 dark:divide-slate-800">
-            {txList.length === 0 ? (
-              <div className="py-6 text-center text-xs text-slate-400">
-                Belum ada transaksi di periode ini.
+          {/* Card 2: Total Pengeluaran */}
+          <div className="bg-white dark:bg-[#141721] border border-[#DFE5EE] dark:border-gray-800 rounded-2xl p-6 min-h-[145px] flex flex-col justify-center gap-2 shadow-2xs hover:shadow-xs transition-shadow">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold tracking-wider text-[#7F8A9E] dark:text-slate-400 uppercase">
+                TOTAL PENGELUARAN
+              </span>
+              <div className="w-8 h-8 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center">
+                <TrendingDown className="w-4 h-4" />
               </div>
-            ) : (
-              txList.slice(0, 5).map((tx, idx) => {
-                const isIncome = tx.type === 'income';
+            </div>
+            <div className="text-xl font-extrabold text-rose-600 dark:text-rose-400">
+              {maskAmount(formatRupiah(monthlyExpense))}
+            </div>
+            <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+              <span className="font-semibold text-slate-700 dark:text-slate-300">41.9%</span>
+              <span>dari total pemasukan bulan ini</span>
+            </div>
+          </div>
+
+          {/* Card 3: Arus Kas Bersih */}
+          <div className="bg-white dark:bg-[#141721] border border-[#DFE5EE] dark:border-gray-800 rounded-2xl p-6 min-h-[145px] flex flex-col justify-center gap-2 shadow-2xs hover:shadow-xs transition-shadow">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold tracking-wider text-[#7F8A9E] dark:text-slate-400 uppercase">
+                ARUS KAS BERSIH
+              </span>
+              <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+                <Wallet className="w-4 h-4" />
+              </div>
+            </div>
+            <div className="text-xl font-extrabold text-indigo-600 dark:text-indigo-400">
+              {netCashflow >= 0 ? '+' : ''}{maskAmount(formatRupiah(netCashflow))}
+            </div>
+            <div className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
+              <ShieldCheck className="w-3.5 h-3.5" />
+              <span>Surplus tabungan aman</span>
+            </div>
+          </div>
+        </section>
+
+        {/* ===================================================================== */}
+        {/* ROW 3: SECTION ANALISIS (2 KOLOM PROPORSIONAL 2:1)                    */}
+        {/* ===================================================================== */}
+        <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+          {/* Kolom Kiri (8 Cols): Grafik Arus Kas Recharts */}
+          <div className="lg:col-span-8 bg-white dark:bg-[#141721] border border-[#DFE5EE] dark:border-gray-800 rounded-2xl p-6 sm:p-7 shadow-2xs flex flex-col justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100 dark:border-gray-800">
+              <div>
+                <h2 className="text-base font-extrabold text-[#191B3D] dark:text-white">
+                  Arus Kas Bulanan
+                </h2>
+                <p className="text-xs text-[#7F8A9E] dark:text-slate-400 mt-0.5">
+                  Perbandingan pemasukan &amp; pengeluaran sepanjang tahun
+                </p>
+              </div>
+
+              {/* Legend */}
+              <div className="flex items-center gap-4 text-xs font-semibold">
+                <div className="flex items-center gap-1.5 text-[#191B3D] dark:text-slate-200">
+                  <span className="w-3 h-3 rounded-md bg-[#059669]" />
+                  <span>Pemasukan</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-[#191B3D] dark:text-slate-200">
+                  <span className="w-3 h-3 rounded-md bg-[#4F46E5]" />
+                  <span>Pengeluaran</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Recharts Bar Chart */}
+            <div className="w-full h-64 pt-5">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={trendData} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" opacity={0.5} />
+                  <XAxis
+                    dataKey="month"
+                    tickLine={false}
+                    axisLine={{ stroke: '#E2E8F0' }}
+                    tick={{ fill: '#7F8A9E', fontSize: 11, fontWeight: 600 }}
+                  />
+                  <YAxis
+                    tickLine={false}
+                    axisLine={false}
+                    tickFormatter={(v) => `${(v / 1000000).toFixed(1)}jt`}
+                    tick={{ fill: '#7F8A9E', fontSize: 11 }}
+                  />
+                  <Tooltip content={<CashflowTooltip />} cursor={{ fill: 'rgba(99, 102, 241, 0.05)' }} />
+                  <Bar dataKey="income" name="Pemasukan" fill="#059669" radius={[4, 4, 0, 0]} maxBarSize={16} />
+                  <Bar dataKey="expense" name="Pengeluaran" fill="#4F46E5" radius={[4, 4, 0, 0]} maxBarSize={16} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Kolom Kanan (4 Cols): Kategori Pengeluaran Terbesar */}
+          <div className="lg:col-span-4 bg-white dark:bg-[#141721] border border-[#DFE5EE] dark:border-gray-800 rounded-2xl p-6 sm:p-7 shadow-2xs flex flex-col justify-between space-y-5">
+            <div>
+              <div className="flex items-center justify-between">
+                <h2 className="text-base font-extrabold text-[#191B3D] dark:text-white">
+                  Kategori Terbesar
+                </h2>
+                <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                  {formatRupiah(monthlyExpense)}
+                </span>
+              </div>
+              <p className="text-xs text-[#7F8A9E] dark:text-slate-400 mt-0.5">
+                Alokasi pengeluaran utama bulan ini
+              </p>
+            </div>
+
+            {/* Stacked Multi-color Progress Bar */}
+            <div className="w-full h-3 rounded-full bg-slate-100 dark:bg-gray-800 flex overflow-hidden">
+              <div style={{ width: '33.31%' }} className="bg-[#059669]" title="Lain-lain: 33.31%" />
+              <div style={{ width: '31.71%' }} className="bg-[#4F46E5]" title="Makanan: 31.71%" />
+              <div style={{ width: '26.75%' }} className="bg-[#F59E0B]" title="Belanja: 26.75%" />
+              <div style={{ width: '8.23%' }} className="bg-slate-300 dark:bg-slate-600" title="Lainnya" />
+            </div>
+
+            {/* Category List */}
+            <div className="space-y-3.5 text-xs">
+              {topExpenseCategories.map((cat, idx) => {
+                const IconComp = getCategoryIconComponent(cat.name);
                 return (
-                  <div key={tx.id || idx} className="flex items-center justify-between py-3.5 first:pt-1 last:pb-0">
-                    <div className="flex flex-col gap-0.5">
-                      <div className="text-[14px] font-semibold text-[#191B3D] dark:text-white leading-tight">
-                        {tx.description || tx.category_name || 'Transaksi'}
+                  <div key={idx} className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+                        style={{ backgroundColor: `${cat.color}18`, color: cat.color }}
+                      >
+                        <IconComp className="w-4 h-4" />
                       </div>
-                      <div className="text-[11px] text-[#61647C] dark:text-slate-400 leading-tight">
-                        {formatTxDateShort(tx.date)} · {tx.wallet_name || tx.category_name || 'Rekening Utama'}
+                      <div>
+                        <div className="font-bold text-[#191B3D] dark:text-white">
+                          {cat.name}
+                        </div>
+                        <div className="text-[11px] text-[#7F8A9E] dark:text-slate-400">
+                          {cat.percentage}% dari total
+                        </div>
                       </div>
                     </div>
-                    <div className="shrink-0 text-right">
-                      <span className={`text-[13px] font-semibold ${isIncome ? 'text-emerald-600' : 'text-[#191B3D] dark:text-white'}`}>
-                        {isIncome ? '+ ' : '- '}
-                        {formatRupiah(tx.amount)}
-                      </span>
+                    <div className="font-extrabold text-[#191B3D] dark:text-white">
+                      {maskAmount(formatRupiah(cat.total_amount))}
                     </div>
                   </div>
                 );
-              })
-            )}
+              })}
+            </div>
+
+            <Link
+              to="/laporan"
+              className="pt-3 border-t border-slate-100 dark:border-gray-800 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 flex items-center justify-between group transition-colors"
+            >
+              <span>Lihat Detail Laporan Kategori</span>
+              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+            </Link>
           </div>
         </section>
-      </div>
+
+        {/* ===================================================================== */}
+        {/* ROW 4: RIWAYAT TRANSAKSI TERBARU                                      */}
+        {/* ===================================================================== */}
+        <section className="bg-white dark:bg-[#141721] border border-[#DFE5EE] dark:border-gray-800 rounded-2xl p-6 sm:p-7 shadow-2xs space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-gray-800">
+            <div>
+              <h2 className="text-base font-extrabold text-[#191B3D] dark:text-white">
+                Transaksi Terbaru
+              </h2>
+              <p className="text-xs text-[#7F8A9E] dark:text-slate-400 mt-0.5">
+                Catatan keuangan yang baru saja Anda lakukan
+              </p>
+            </div>
+
+            <Link
+              to="/transaksi"
+              className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 flex items-center gap-1 group transition-colors"
+            >
+              <span>Lihat Semua Transaksi</span>
+              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+            </Link>
+          </div>
+
+          {/* List of Recent Transactions */}
+          <div className="divide-y divide-slate-100 dark:divide-gray-800">
+            {recentTransactions.map((tx) => {
+              const IconComp = getCategoryIconComponent(tx.category_name);
+              const isExpense = tx.type === 'expense';
+              return (
+                <div
+                  key={tx.id}
+                  className="py-3.5 flex items-center justify-between gap-4 hover:bg-slate-50/50 dark:hover:bg-gray-800/20 px-2 rounded-xl transition-colors"
+                >
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div
+                      className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                        isExpense
+                          ? 'bg-rose-50 text-rose-600 dark:bg-rose-950/50 dark:text-rose-400'
+                          : 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400'
+                      }`}
+                    >
+                      <IconComp className="w-4 h-4" />
+                    </div>
+                    <div className="truncate">
+                      <div className="font-extrabold text-xs sm:text-sm text-[#191B3D] dark:text-white truncate">
+                        {tx.description}
+                      </div>
+                      <div className="text-[11px] text-[#7F8A9E] dark:text-slate-400 flex items-center gap-2 mt-0.5">
+                        <span>{tx.category_name || 'Lainnya'}</span>
+                        <span>•</span>
+                        <span>{tx.wallet_name || 'Dompet'}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="text-right shrink-0">
+                    <div
+                      className={`font-extrabold text-xs sm:text-sm ${
+                        isExpense
+                          ? 'text-rose-600 dark:text-rose-400'
+                          : 'text-emerald-600 dark:text-emerald-400'
+                      }`}
+                    >
+                      {isExpense ? '- ' : '+ '}
+                      {maskAmount(formatRupiah(tx.amount))}
+                    </div>
+                    <div className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
+                      {formatShortDate(tx.date)}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      </main>
     </div>
   );
+
+  // If standalone is true, mount self-contained with responsive DashboardSidebar and DashboardBottomNav
+  if (standalone) {
+    return (
+      <div className="flex min-h-screen bg-[#F2F3F8] dark:bg-[#0d0f18]">
+        <DashboardSidebar userName={userName} />
+        <div className="flex-1 md:pl-20 lg:pl-64 flex flex-col min-w-0">
+          {mainContent}
+        </div>
+        <DashboardBottomNav />
+      </div>
+    );
+  }
+
+  // Otherwise, render mainContent directly into the App's Layout
+  return mainContent;
 }

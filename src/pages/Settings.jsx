@@ -96,11 +96,11 @@ export default function Settings() {
       return saved
         ? JSON.parse(saved)
         : {
-            billDueReminder: true,
-            budgetOverrunAlert: true,
-            weeklyDigest: false,
-            savingsMilestoneAlert: true,
-          };
+          billDueReminder: true,
+          budgetOverrunAlert: true,
+          weeklyDigest: false,
+          savingsMilestoneAlert: true,
+        };
     } catch {
       return {
         billDueReminder: true,
@@ -427,7 +427,7 @@ export default function Settings() {
           <div className="lg:col-span-8 bg-gradient-to-br from-[#ECEEF8] via-[#E6E9F5] to-[#DFE3F2] dark:from-[#181B30] dark:via-[#15172A] dark:to-[#101222] border border-[#D4DAEB] dark:border-indigo-950/60 rounded-2xl p-6 sm:p-7 flex flex-col justify-between shadow-xs space-y-4 relative overflow-hidden">
             {/* Subtle light mesh accent */}
             <div className="pointer-events-none absolute -top-16 -right-16 w-48 h-48 rounded-full bg-indigo-400/10 dark:bg-indigo-500/10 blur-3xl" aria-hidden="true" />
-            
+
             <div className="space-y-2 relative z-10">
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-widest bg-indigo-600/10 text-indigo-700 dark:bg-indigo-400/15 dark:text-indigo-300 border border-indigo-600/15">
                 <Sparkles className="w-3 h-3 text-indigo-600 dark:text-indigo-400" />
@@ -618,18 +618,16 @@ export default function Settings() {
                     key={tab.id}
                     type="button"
                     onClick={() => setActiveTab(tab.id)}
-                    className={`flex items-center justify-between px-4 py-3 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer text-left w-full ${
-                      isActive
+                    className={`flex items-center justify-between px-4 py-3 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer text-left w-full ${isActive
                         ? 'bg-gradient-to-r from-[#17193F] to-[#25285E] dark:from-indigo-600 dark:to-indigo-700 text-white shadow-md border-l-4 border-indigo-400 pl-3.5'
                         : 'text-[#61647C] dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-gray-800/60 hover:text-[#191B3D] dark:hover:text-white'
-                    }`}
+                      }`}
                   >
                     <div className="flex items-center gap-3">
-                      <div className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${
-                        isActive
+                      <div className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${isActive
                           ? 'bg-white/15 text-white'
                           : 'bg-slate-100 dark:bg-gray-800 text-slate-500 dark:text-slate-400'
-                      }`}>
+                        }`}>
                         <IconComp className="w-3.5 h-3.5 shrink-0" />
                       </div>
                       <span>{tab.label}</span>
@@ -704,11 +702,10 @@ export default function Settings() {
 
                 {profileMessage.text && (
                   <div
-                    className={`flex items-center gap-2 p-3.5 rounded-xl text-xs font-semibold ${
-                      profileMessage.type === 'success'
+                    className={`flex items-center gap-2 p-3.5 rounded-xl text-xs font-semibold ${profileMessage.type === 'success'
                         ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-900'
                         : 'bg-rose-50 text-rose-800 border border-rose-200 dark:bg-rose-950/50 dark:text-rose-300 dark:border-rose-900'
-                    }`}
+                      }`}
                   >
                     {profileMessage.type === 'success' ? <Check className="w-4 h-4 text-emerald-600" /> : <AlertCircle className="w-4 h-4 text-rose-600" />}
                     <span>{profileMessage.text}</span>
@@ -879,11 +876,10 @@ export default function Settings() {
 
                 {passwordMessage.text && (
                   <div
-                    className={`flex items-center gap-2 p-3 rounded-xl text-xs font-semibold ${
-                      passwordMessage.type === 'success'
+                    className={`flex items-center gap-2 p-3 rounded-xl text-xs font-semibold ${passwordMessage.type === 'success'
                         ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300'
                         : 'bg-rose-50 text-rose-800 border border-rose-200 dark:bg-rose-950/50 dark:text-rose-300'
-                    }`}
+                      }`}
                   >
                     {passwordMessage.type === 'success' ? <Check className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
                     <span>{passwordMessage.text}</span>

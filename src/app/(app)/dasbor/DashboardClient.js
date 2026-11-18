@@ -1,22 +1,20 @@
 'use client';
 import { formatRupiah, formatDateShort } from '@/lib/utils';
 import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer,
+  AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid,
+  Tooltip, ResponsiveContainer, Legend
 } from 'recharts';
-import ThemeToggleBtn from '@/app/components/ThemeToggleBtn';
-import { useTheme } from '@/app/components/ThemeProvider';
 
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     return (
-      <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 14px', fontSize: 12, boxShadow: 'var(--shadow-md)' }}>
+      <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 14px', fontSize: 12 }}>
         <p style={{ fontWeight: 600, marginBottom: 6, color: 'var(--text-secondary)' }}>{label}</p>
         {payload.map((p, i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
             <div style={{ width: 8, height: 8, borderRadius: '50%', background: p.color }} />
             <span style={{ color: 'var(--text-secondary)' }}>{p.name}: </span>
-            <span style={{ fontWeight: 700, color: '#000000' }}>{formatRupiah(p.value)}</span>
+            <span style={{ fontWeight: 600 }}>{formatRupiah(p.value)}</span>
           </div>
         ))}
       </div>
@@ -28,29 +26,21 @@ const CustomTooltip = ({ active, payload, label }) => {
 export default function DashboardClient({ data, userName }) {
   const { income, expense, balance, monthly, recent, categories, month } = data;
   const savings = income - expense;
-  const { isDark } = useTheme();
 
   const firstName = userName?.split(' ')[0] || 'Pengguna';
-
-  // Chart colors berdasarkan theme
-  const chartIncome = isDark ? '#34D399' : '#1B4332';
-  const chartExpense = isDark ? '#F87171' : '#DC2626';
-  const chartGrid = isDark ? '#2D3F55' : '#F0EEE8';
-  const chartAxis = isDark ? '#64748B' : '#9CA3AF';
 
   return (
     <>
       {/* Topbar */}
       <div className="topbar">
         <div className="topbar-left">
-          <span className="topbar-breadcrumb">Beranda · Dasbor</span>
-          <span className="topbar-title">Dasbor</span>
+          <span className="topbar-breadcrumb">Beranda · Dashboard</span>
+          <span className="topbar-title">Dashboard</span>
         </div>
         <div className="topbar-right">
           <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
             {new Intl.DateTimeFormat('id-ID', { dateStyle: 'long' }).format(new Date())}
           </span>
-          <ThemeToggleBtn />
         </div>
       </div>
 
@@ -69,22 +59,22 @@ export default function DashboardClient({ data, userName }) {
         <div className="stat-cards">
           <div className="stat-card primary">
             <div className="stat-card-label">Total Saldo</div>
-            <div className="stat-card-value" style={{ color: '#000000' }}>{formatRupiah(balance)}</div>
+            <div className="stat-card-value">{formatRupiah(balance)}</div>
             <div className="stat-card-change">💳 Semua dompet</div>
           </div>
           <div className="stat-card">
             <div className="stat-card-label">Pemasukan</div>
-            <div className="stat-card-value" style={{ color: '#000000' }}>{formatRupiah(income)}</div>
+            <div className="stat-card-value" style={{ color: 'var(--primary)' }}>{formatRupiah(income)}</div>
             <div className="stat-card-change up">↑ Bulan ini</div>
           </div>
           <div className="stat-card">
             <div className="stat-card-label">Pengeluaran</div>
-            <div className="stat-card-value" style={{ color: '#000000' }}>{formatRupiah(expense)}</div>
+            <div className="stat-card-value" style={{ color: 'var(--expense-color)' }}>{formatRupiah(expense)}</div>
             <div className="stat-card-change down">↓ Bulan ini</div>
           </div>
           <div className="stat-card">
             <div className="stat-card-label">Tabungan bersih</div>
-            <div className="stat-card-value" style={{ color: '#000000' }}>
+            <div className="stat-card-value" style={{ color: savings >= 0 ? 'var(--primary)' : 'var(--expense-color)' }}>
               {formatRupiah(savings)}
             </div>
             <div className="stat-card-change" style={{ color: savings >= 0 ? 'var(--success)' : 'var(--danger)' }}>
@@ -109,20 +99,20 @@ export default function DashboardClient({ data, userName }) {
                   <AreaChart data={monthly} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
                     <defs>
                       <linearGradient id="incomeGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor={chartIncome} stopOpacity={isDark ? 0.25 : 0.15}/>
-                        <stop offset="95%" stopColor={chartIncome} stopOpacity={0}/>
+                        <stop offset="5%" stopColor="#1B4332" stopOpacity={0.15} />
+                        <stop offset="95%" stopColor="#1B4332" stopOpacity={0} />
                       </linearGradient>
                       <linearGradient id="expenseGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor={chartExpense} stopOpacity={isDark ? 0.2 : 0.1}/>
-                        <stop offset="95%" stopColor={chartExpense} stopOpacity={0}/>
+                        <stop offset="5%" stopColor="#DC2626" stopOpacity={0.1} />
+                        <stop offset="95%" stopColor="#DC2626" stopOpacity={0} />
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke={chartGrid} />
                     <XAxis dataKey="label" tick={{ fontSize: 11, fill: chartAxis }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fontSize: 10, fill: chartAxis }} axisLine={false} tickLine={false} tickFormatter={v => `${(v/1000000).toFixed(0)}jt`} />
+                    <YAxis tick={{ fontSize: 10, fill: chartAxis }} axisLine={false} tickLine={false} tickFormatter={v => `${(v / 1000000).toFixed(0)}jt`} />
                     <Tooltip content={<CustomTooltip />} />
-                    <Area type="monotone" dataKey="income" name="Pemasukan" stroke={chartIncome} strokeWidth={2} fill="url(#incomeGrad)" />
-                    <Area type="monotone" dataKey="expense" name="Pengeluaran" stroke={chartExpense} strokeWidth={2} fill="url(#expenseGrad)" />
+                    <Area type="monotone" dataKey="income" name="Pemasukan" stroke="#1B4332" strokeWidth={2} fill="url(#incomeGrad)" />
+                    <Area type="monotone" dataKey="expense" name="Pengeluaran" stroke="#DC2626" strokeWidth={2} fill="url(#expenseGrad)" />
                   </AreaChart>
                 </ResponsiveContainer>
               ) : (
@@ -154,7 +144,7 @@ export default function DashboardClient({ data, userName }) {
                         <span style={{ fontSize: 13, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 6 }}>
                           <span>{cat.icon}</span> {cat.name}
                         </span>
-                        <span style={{ fontSize: 13, fontWeight: 700, color: '#000000' }}>{formatRupiah(cat.total)}</span>
+                        <span style={{ fontSize: 13, fontWeight: 700 }}>{formatRupiah(cat.total)}</span>
                       </div>
                       <div className="progress-bar">
                         <div className="progress-fill" style={{ width: `${pct}%`, background: cat.color || 'var(--primary)' }} />
@@ -213,8 +203,8 @@ export default function DashboardClient({ data, userName }) {
                         {tx.type === 'income' ? 'Masuk' : tx.type === 'expense' ? 'Keluar' : 'Transfer'}
                       </span>
                     </td>
-                     <td style={{ textAlign: 'right' }}>
-                      <span className={`tx-amount ${tx.type}`} style={{ color: '#000000' }}>
+                    <td style={{ textAlign: 'right' }}>
+                      <span className={`tx-amount ${tx.type}`}>
                         {tx.type === 'income' ? '+' : '-'}{formatRupiah(tx.amount)}
                       </span>
                     </td>

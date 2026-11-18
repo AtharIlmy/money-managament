@@ -8,18 +8,28 @@ export function useTheme() {
 }
 
 export default function ThemeProvider({ children }) {
-  const isDark = false;
-  const toggleTheme = () => {};
+  const [isDark, setIsDark] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    try {
+      const saved = localStorage.getItem('app_theme');
+      return saved === 'dark';
+    } catch {
+      return false;
+    }
+  });
 
   useEffect(() => {
     try {
-      localStorage.removeItem('app_theme');
-      document.documentElement.setAttribute('data-theme', 'light');
-      document.documentElement.classList.remove('dark');
+      localStorage.setItem('app_theme', isDark ? 'dark' : 'light');
     } catch {
       // ignore
     }
-  }, []);
+    const root = document.documentElement;
+    root.setAttribute('data-theme', isDark ? 'dark' : 'light');
+    root.classList.toggle('dark', isDark);
+  }, [isDark]);
+
+  const toggleTheme = () => setIsDark((prev) => !prev);
 
   return (
     <ThemeCtx.Provider value={{ isDark, toggleTheme }}>

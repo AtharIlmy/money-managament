@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { formatRupiah } from '../lib/utils';
 import Icon from '../components/Icon';
+import NotificationButton from '../components/NotificationButton';
+import ThemeToggleBtn from '../components/ThemeToggleBtn';
 
 const BILL_CATEGORIES = [
   { label: 'Internet & WiFi', icon: '📶' },
@@ -23,6 +25,8 @@ export default function Bills() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showPayModal, setShowPayModal] = useState(false);
   const [selectedBill, setSelectedBill] = useState(null);
+  const [showEditBillModal, setShowEditBillModal] = useState(false);
+  const [editingBill, setEditingBill] = useState(null);
 
   const [form, setForm] = useState({
     name: '',
@@ -34,6 +38,14 @@ export default function Bills() {
   });
 
   const [payWalletId, setPayWalletId] = useState('');
+  const [editBillForm, setEditBillForm] = useState({
+    name: '',
+    amount: '',
+    due_day: '1',
+    category: 'Langganan',
+    icon: '📅',
+    wallet_id: '',
+  });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -126,13 +138,25 @@ export default function Bills() {
     }
   };
 
-  const handleDeleteBill = async (id) => {
-    if (!window.confirm('Hapus daftar tagihan ini?')) return;
+  const handlePayAllBills = async () => {
+    if (!window.confirm('Bayar semua tagihan yang belum lunas?')) return;
+    const unpaid = bills.filter((b) => !b.is_paid);
+    if (unpaid.length === 0) return;
+
+    setSaving(true);
     try {
-      await authFetch(`/api/bills/${id}`, { method: 'DELETE' });
+      const promises = unpaid.map((bill) =>
+        authFetch(`/api/bills/${bill.id}/pay`, {
+          method: 'PUT',
+          body: JSON.stringify({ wallet_id: bill.wallet_id || wallets[0]?.id || '' }),
+        })
+      );
+      await Promise.all(promises);
       loadData();
     } catch (err) {
-      alert('Gagal menghapus tagihan');
+      alert('Gagal memproses pembayaran semua tagihan');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -143,27 +167,27 @@ export default function Bills() {
 
   return (
     <>
-      {/* Topbar */}
-      <div className="topbar">
-        <div className="topbar-left">
-          <span className="topbar-breadcrumb">Beranda · Tagihan</span>
-          <span className="topbar-title">Tagihan Rutin & Langganan</span>
+      {/* Topbar — standard pattern */}
+      <header className="topbar dashboard-topbar">
+        <div style={{ fontSize: 13, color: 'var(--text-secondary, #64748B)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span>Ruang personal</span>
+          <span style={{ color: 'var(--text-muted, #94A3B8)' }}>·</span>
+          <span style={{ fontWeight: 600, color: 'var(--text-primary, #0F172A)' }}>Tagihan</span>
         </div>
-        <div className="topbar-right">
-          <button
-            id="add-bill-top-btn"
-            className="btn btn-primary"
-            onClick={() => {
-              setError('');
-              setShowAddModal(true);
-            }}
-          >
-            + Tambah Tagihan
-          </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: '#10B981', fontWeight: 600 }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10B981', display: 'inline-block' }} />
+            Data tersimpan
+          </div>
+          <NotificationButton />
+          <ThemeToggleBtn />
+          <span style={{ fontSize: 12.5, color: 'var(--text-secondary, #64748B)', fontWeight: 500 }}>
+            {new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date())}
+          </span>
         </div>
-      </div>
+      </header>
 
-      <div className="page-content">
+      <div className="page-content" style={{ padding: '24px 28px' }}>
         {/* Signature Biru Dongker Hero Banner */}
         <div className="navy-banner">
           <div className="navy-banner-left">
@@ -333,6 +357,13 @@ export default function Bills() {
                               Lunas
                             </span>
                           )}
+                          <button
+                            onClick={() => handleOpenEditBill(bill)}
+                            style={{ background: 'none', color: 'var(--primary)', fontSize: 16, cursor: 'pointer' }}
+                            title="Edit Tagihan"
+                          >
+                            <Icon name="edit" size={16} />
+                          </button>
                           <button
                             onClick={() => handleDeleteBill(bill.id)}
                             style={{ background: 'none', color: 'var(--text-muted)', fontSize: 16, cursor: 'pointer' }}
@@ -590,6 +621,78 @@ export default function Bills() {
           </div>
         </div>
       )}
+
+      {/* Modal: Edit Tagihan */}
+      {showEditBillModal && editingBill && (
+        <div className="modal-backdrop" onClick={() => setShowEditBillModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div className="modal-title">Edit Tagihan</div>
+              <button style={{ background: 'none', fontSize: 20, cursor: 'pointer' }} onClick={() => setShowEditBillModal(false)}>&#10005;</button>
+            </div>
+            <form onSubmit={handleEditBillSubmit}>
+              <div style={{ padding: '16px', background: 'var(--bg)', borderRadius: 10, marginBottom: 18 }}>
+                <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Edit Data Tagihan</div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', marginTop: 2 }}>
+                  {editingBill.name}
+                </div>
+                <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--expense-color)', marginTop: 8 }}>
+                  {formatRupiah(editingBill.amount)}
+                </div>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Nama Layanan</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={editBillForm.name}
+                  onChange={(e) => setEditBillForm({ ...editBillForm, name: e.target.value })}
+                  placeholder="Contoh: Internet & WiFi"
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Jatuh Tempo (hari)</label>
+                <input
+                  type="number"
+                  className="form-input"
+                  value={editBillForm.due_day}
+                  onChange={(e) => setEditBillForm({ ...editBillForm, due_day: e.target.value })}
+                  min="1"
+                  max="31"
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Kategori</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={editBillForm.category}
+                  onChange={(e) => setEditBillForm({ ...editBillForm, category: e.target.value })}
+                  placeholder="Contoh: Langganan,ylist"
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Nominal (Rp)</label>
+                <input
+                  type="number"
+                  className="form-input"
+                  value={editBillForm.amount}
+                  onChange={(e) => setEditBillForm({ ...editBillForm, amount: e.target.value })}
+                  min="0"
+                  step="1000"
+                />
+              </div>
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 24 }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowEditBillModal(false)}>Batal</button>
+                <button type="submit" className="btn btn-primary" disabled={saving}>
+                  {saving ? 'Menyimpan...' : 'Simpan Perubahan'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
     </>
   );
 }

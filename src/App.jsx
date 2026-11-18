@@ -17,6 +17,9 @@ import Bills from './pages/Bills';
 import Reports from './pages/Reports';
 import Settings from './pages/Settings';
 
+import EmergencyFund from './pages/EmergencyFund';
+import DailyCalendar from './pages/DailyCalendar';
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -28,8 +31,11 @@ export default function App() {
               <Routes>
             {/* Public Auth Routes */}
             <Route path="/masuk" element={<Login />} />
+            <Route path="/login" element={<Navigate to="/masuk" replace />} />
             <Route path="/lupa-sandi" element={<Login defaultShowForgot={true} />} />
+            <Route path="/lupa-kata-sandi" element={<Login defaultShowForgot={true} />} />
             <Route path="/daftar" element={<Register />} />
+            <Route path="/register" element={<Navigate to="/daftar" replace />} />
 
             {/* Protected App Routes */}
             <Route element={<Layout />}>
@@ -38,9 +44,12 @@ export default function App() {
               <Route path="/transaksi" element={<Transactions />} />
               <Route path="/dompet" element={<Wallets />} />
               <Route path="/tabungan" element={<Savings />} />
+              <Route path="/dana-darurat" element={<EmergencyFund />} />
               <Route path="/anggaran" element={<Budgets />} />
               <Route path="/tagihan" element={<Bills />} />
               <Route path="/laporan" element={<Reports />} />
+              <Route path="/kalender" element={<Navigate to="/kalender-harian" replace />} />
+              <Route path="/kalender-harian" element={<DailyCalendar />} />
               <Route path="/pengaturan" element={<Settings />} />
             </Route>
 

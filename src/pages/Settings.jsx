@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { usePWA } from '../context/PWAContext';
 import { useTheme } from '../context/ThemeContext';
-import Icon from '../components/Icon';
 import NotificationButton from '../components/NotificationButton';
+import ThemeToggleBtn from '../components/ThemeToggleBtn';
 import {
   getNotificationPermission,
   requestNotificationPermission,
@@ -12,20 +12,50 @@ import {
   addInAppNotification,
   scheduleLockScreenTestNotification,
 } from '../lib/notifications';
+import {
+  User,
+  Sliders,
+  Lock,
+  Bell,
+  Download,
+  Smartphone,
+  Check,
+  AlertCircle,
+  Shield,
+  LogOut,
+  Moon,
+  Sun,
+  CheckCircle2,
+  Clock,
+  Sparkles,
+  ChevronRight,
+  Database,
+  FileSpreadsheet,
+  Mail,
+} from 'lucide-react';
 
 export default function Settings() {
   const { user, updateUser, authFetch, logout } = useAuth();
   const navigate = useNavigate();
-  const { openInstallModal, isInstalled, isIOS, deferredPrompt, installApp } = usePWA();
+  const { openInstallModal, isInstalled, deferredPrompt, installApp } = usePWA();
   const { isDark, setTheme } = useTheme();
   const [activeTab, setActiveTab] = useState('profile');
 
   // Profile form state
-  const [profileForm, setProfileForm] = useState({
+  const [profileForm, setProfileForm] = useState(() => ({
     name: user?.name || '',
     email: user?.email || '',
     currency: 'IDR',
-  });
+  }));
+  const [prevUserId, setPrevUserId] = useState(user?.id);
+  if (user && user.id !== prevUserId) {
+    setPrevUserId(user.id);
+    setProfileForm((prev) => ({
+      ...prev,
+      name: user.name || '',
+      email: user.email || '',
+    }));
+  }
   const [profileLoading, setProfileLoading] = useState(false);
   const [profileMessage, setProfileMessage] = useState({ type: '', text: '' });
 
@@ -38,7 +68,7 @@ export default function Settings() {
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [passwordMessage, setPasswordMessage] = useState({ type: '', text: '' });
 
-  // Preferences state (stored in localStorage)
+  // Preferences state
   const [preferences, setPreferences] = useState(() => {
     const defaults = {
       budgetCycleDay: '1',
@@ -47,7 +77,6 @@ export default function Settings() {
       defaultTxType: 'expense',
       rounding: 'none',
     };
-
     try {
       const saved = localStorage.getItem('user_finance_preferences');
       const parsed = saved ? JSON.parse(saved) : {};
@@ -83,20 +112,28 @@ export default function Settings() {
   });
   const [notifSaved, setNotifSaved] = useState(false);
   const [notifSaving, setNotifSaving] = useState(false);
-  const [permissionStatus, setPermissionStatus] = useState('default');
-  const [reminderHour, setReminderHour] = useState('20');
+  const [permissionStatus, setPermissionStatus] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return getNotificationPermission();
+    }
+    return 'default';
+  });
+  const [reminderHour, setReminderHour] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('user_reminder_hour') || '20';
+    }
+    return '20';
+  });
   const [notifFeedback, setNotifFeedback] = useState('');
+  const [lockCountdown, setLockCountdown] = useState(null);
+  const [exportLoading, setExportLoading] = useState(false);
 
-  // Load reminder settings
+  // Initialize reminder setting in localStorage if not set
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      setPermissionStatus(getNotificationPermission());
       const savedHour = localStorage.getItem('user_reminder_hour');
       if (!savedHour) {
         localStorage.setItem('user_reminder_hour', '20');
-        setReminderHour('20');
-      } else {
-        setReminderHour(savedHour);
       }
     }
   }, []);
@@ -141,8 +178,6 @@ export default function Settings() {
     setTimeout(() => setNotifFeedback(''), 4500);
   };
 
-  const [lockCountdown, setLockCountdown] = useState(null);
-
   const handleTestLockScreen = async () => {
     if (permissionStatus !== 'granted') {
       const res = await requestNotificationPermission();
@@ -165,41 +200,28 @@ export default function Settings() {
     });
   };
 
-  // Export state
-
-  const [exportLoading, setExportLoading] = useState(false);
-
-  useEffect(() => {
-    if (user) {
-      setProfileForm((prev) => ({
-        ...prev,
-        name: user.name || '',
-        email: user.email || '',
-      }));
-    }
-  }, [user]);
-
-  // Handle Profile Update
+  // Profile Update
   const handleProfileSubmit = async (e) => {
     e.preventDefault();
     setProfileMessage({ type: '', text: '' });
     setProfileLoading(true);
 
     try {
-      const res = await authFetch('/api/auth/profile', {
-        method: 'PUT',
-        body: JSON.stringify({
-          name: profileForm.name.trim(),
-          email: profileForm.email.trim(),
-        }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Gagal memperbarui profil');
+      if (authFetch) {
+        const res = await authFetch('/api/auth/profile', {
+          method: 'PUT',
+          body: JSON.stringify({
+            name: profileForm.name.trim(),
+            email: profileForm.email.trim(),
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Gagal memperbarui profil');
+        updateUser(data.user);
+      } else {
+        updateUser({ ...user, name: profileForm.name.trim(), email: profileForm.email.trim() });
       }
 
-      updateUser(data.user);
       setProfileMessage({
         type: 'success',
         text: 'Profil berhasil diperbarui dengan aman!',
@@ -217,7 +239,7 @@ export default function Settings() {
     navigate('/masuk', { replace: true });
   };
 
-  // Handle Password Update
+  // Password Update
   const handlePasswordSubmit = async (e) => {
     e.preventDefault();
     setPasswordMessage({ type: '', text: '' });
@@ -240,17 +262,17 @@ export default function Settings() {
 
     setPasswordLoading(true);
     try {
-      const res = await authFetch('/api/auth/password', {
-        method: 'PUT',
-        body: JSON.stringify({
-          currentPassword: passwordForm.currentPassword,
-          newPassword: passwordForm.newPassword,
-        }),
-      });
+      if (authFetch) {
+        const res = await authFetch('/api/auth/password', {
+          method: 'PUT',
+          body: JSON.stringify({
+            currentPassword: passwordForm.currentPassword,
+            newPassword: passwordForm.newPassword,
+          }),
+        });
 
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Gagal memperbarui kata sandi');
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Gagal memperbarui kata sandi');
       }
 
       setPasswordMessage({
@@ -295,37 +317,39 @@ export default function Settings() {
   const handleExportCSV = async () => {
     setExportLoading(true);
     try {
-      const res = await authFetch('/api/transactions');
-      if (!res.ok) throw new Error('Gagal mengunduh data transaksi');
-      const data = await res.json();
-      const transactions = Array.isArray(data) ? data : data.transactions || [];
+      if (authFetch) {
+        const res = await authFetch('/api/transactions');
+        if (!res.ok) throw new Error('Gagal mengunduh data transaksi');
+        const data = await res.json();
+        const transactions = Array.isArray(data) ? data : data.transactions || [];
 
-      if (transactions.length === 0) {
-        alert('Belum ada transaksi untuk diekspor.');
-        setExportLoading(false);
-        return;
+        if (transactions.length === 0) {
+          alert('Belum ada transaksi untuk diekspor.');
+          setExportLoading(false);
+          return;
+        }
+
+        const headers = ['ID', 'Tanggal', 'Deskripsi', 'Kategori', 'Tipe', 'Nominal (IDR)', 'Dompet'];
+        const rows = transactions.map((t) => [
+          t.id,
+          t.date || t.created_at,
+          `"${(t.description || '').replace(/"/g, '""')}"`,
+          `"${t.category_name || '-'}"`,
+          t.type === 'income' ? 'Pemasukan' : 'Pengeluaran',
+          t.amount,
+          `"${t.wallet_name || '-'}"`,
+        ]);
+
+        const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.setAttribute('href', url);
+        link.setAttribute('download', `data_transaksi_${new Date().toISOString().slice(0, 10)}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
       }
-
-      const headers = ['ID', 'Tanggal', 'Deskripsi', 'Kategori', 'Tipe', 'Nominal (IDR)', 'Dompet'];
-      const rows = transactions.map((t) => [
-        t.id,
-        t.date || t.created_at,
-        `"${(t.description || '').replace(/"/g, '""')}"`,
-        `"${t.category_name || '-'}"`,
-        t.type === 'income' ? 'Pemasukan' : 'Pengeluaran',
-        t.amount,
-        `"${t.wallet_name || '-'}"`,
-      ]);
-
-      const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.setAttribute('href', url);
-      link.setAttribute('download', `data_transaksi_${new Date().toISOString().slice(0, 10)}.csv`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
     } catch (err) {
       alert(err.message);
     } finally {
@@ -333,7 +357,7 @@ export default function Settings() {
     }
   };
 
-  const userName = user?.name || 'Nadia Putri';
+  const userName = user?.name || 'Muhammad Aisyar';
   const initials = userName
     .split(' ')
     .map((n) => n[0])
@@ -342,1287 +366,812 @@ export default function Settings() {
     .slice(0, 2);
 
   const TABS = [
-    { id: 'profile', label: 'Profil Pengguna', icon: 'person' },
-    { id: 'preferences', label: 'Preferensi Keuangan', icon: 'tune' },
-    { id: 'security', label: 'Keamanan & Sandi', icon: 'lock' },
-    { id: 'notifications', label: 'Notifikasi', icon: 'notifications' },
-    { id: 'data', label: 'Cadangan & Data', icon: 'cloud_download' },
-    { id: 'app', label: 'Unduh Aplikasi', icon: 'smartphone' },
+    { id: 'profile', label: 'Profil Pengguna', icon: User },
+    { id: 'preferences', label: 'Preferensi Keuangan', icon: Sliders },
+    { id: 'security', label: 'Keamanan & Sandi', icon: Lock },
+    { id: 'notifications', label: 'Notifikasi', icon: Bell },
+    { id: 'data', label: 'Cadangan & Data', icon: Database },
+    { id: 'app', label: 'Unduh Aplikasi', icon: Smartphone },
   ];
 
   return (
-    <>
-      {/* Topbar */}
-      <div className="topbar">
-        <div className="topbar-left" style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 500 }}>
-            Ruang personal
-          </span>
-          <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>&gt;</span>
-          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>
-            Pengaturan
-          </span>
+    <div className="w-full min-h-screen bg-[#F2F3F8] dark:bg-[#0d0f18] text-[#191B3D] dark:text-slate-100 font-sans antialiased transition-colors duration-150 flex flex-col">
+      {/* Feedback Toast */}
+      {notifFeedback && (
+        <div className="fixed top-5 right-5 z-50 flex items-center gap-2 bg-[#191B3D] dark:bg-indigo-600 text-white px-4 py-2.5 rounded-xl shadow-lg text-xs font-semibold animate-fade-in max-w-sm">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span>{notifFeedback}</span>
         </div>
-        <div className="topbar-right" style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text-secondary)' }}>
-            <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--income-color)' }} />
+      )}
+
+      {/* ======================================================================= */}
+      {/* TOPBAR (DESKTOP / TABLET: md+)                                          */}
+      {/* ======================================================================= */}
+      <header className="hidden md:flex items-center justify-between px-6 lg:px-8 h-[68px] bg-white dark:bg-[#141721] border-b border-[#DFE5EE] dark:border-gray-800 sticky top-0 z-30 shadow-2xs">
+        <div className="flex items-center gap-2 text-xs text-[#7F8A9E] dark:text-slate-400">
+          <span>Ruang personal</span>
+          <span>·</span>
+          <span className="font-semibold text-[#191B3D] dark:text-white">Pengaturan</span>
+        </div>
+
+        <div className="flex items-center gap-5">
+          <div className="flex items-center gap-1.5 text-xs font-medium text-[#22755F] dark:text-emerald-400">
+            <span className="w-2 h-2 rounded-full bg-[#22755F] dark:bg-emerald-400 inline-block animate-pulse" />
             Data tersimpan
           </div>
-
+          <ThemeToggleBtn />
           <NotificationButton />
-
-          <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 500 }}>
-            30 September 2026
+          <span className="text-xs text-[#191B3D] dark:text-slate-300 font-medium">
+            {new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date())}
           </span>
         </div>
-      </div>
+      </header>
 
-      <div className="page-content" style={{ paddingBottom: 60 }}>
-        {/* Signature Biru Dongker Hero Banner */}
-        <div
-          className="navy-banner"
-          style={{
-            borderRadius: 18,
-            padding: '28px 32px',
-            marginBottom: 24,
-            alignItems: 'center',
-            overflow: 'visible',
-            position: 'relative',
-            zIndex: 30,
-          }}
-        >
-          <div className="navy-banner-left" style={{ flex: 1, position: 'relative', zIndex: 40 }}>
-            <h1 style={{ fontSize: 26, fontWeight: 800, color: '#FFFFFF', marginBottom: 6, letterSpacing: '-0.4px', display: 'flex', alignItems: 'center', gap: 10 }}>
-              <Icon name="settings" size={26} /> Pengaturan Akun
-            </h1>
-            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', marginBottom: 0, maxWidth: 500 }}>
-              Sesuaikan data identitas, preferensi pembukuan, keamanan kata sandi, dan cadangan data finansialmu.
-            </p>
+      {/* ======================================================================= */}
+      {/* CONTENT CONTAINER                                                       */}
+      {/* ======================================================================= */}
+      <main className="flex-1 px-4 sm:px-6 lg:px-8 pt-5 md:pt-7 pb-24 md:pb-12 max-w-7xl w-full mx-auto space-y-6">
+        {/* Mobile Subheader Breadcrumb & Date */}
+        <div className="md:hidden flex items-center justify-between text-[11px] text-[#61647C] dark:text-slate-400 px-0.5">
+          <span>Ruang personal · Pengaturan</span>
+          <span>
+            {new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date())}
+          </span>
+        </div>
+
+        {/* ===================================================================== */}
+        {/* ROW 1: HEADER & PROFILE HERO BANNER                                   */}
+        {/* ===================================================================== */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+          {/* Left Banner: Info Pengaturan (span 7 or 8) */}
+          <div className="lg:col-span-8 bg-gradient-to-br from-[#ECEEF8] via-[#E6E9F5] to-[#DFE3F2] dark:from-[#181B30] dark:via-[#15172A] dark:to-[#101222] border border-[#D4DAEB] dark:border-indigo-950/60 rounded-2xl p-6 sm:p-7 flex flex-col justify-between shadow-xs space-y-4 relative overflow-hidden">
+            {/* Subtle light mesh accent */}
+            <div className="pointer-events-none absolute -top-16 -right-16 w-48 h-48 rounded-full bg-indigo-400/10 dark:bg-indigo-500/10 blur-3xl" aria-hidden="true" />
+            
+            <div className="space-y-2 relative z-10">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-widest bg-indigo-600/10 text-indigo-700 dark:bg-indigo-400/15 dark:text-indigo-300 border border-indigo-600/15">
+                <Sparkles className="w-3 h-3 text-indigo-600 dark:text-indigo-400" />
+                <span>Pusat Konfigurasi &amp; Preferensi</span>
+              </div>
+              <h1 className="text-xl md:text-2xl font-extrabold text-[#191B3D] dark:text-white tracking-tight">
+                Pengaturan Akun &amp; Sistem
+              </h1>
+              <p className="text-xs md:text-sm text-[#61647C] dark:text-slate-300 leading-relaxed max-w-xl">
+                Sesuaikan profil identitas, preferensi keuangan, keamanan kata sandi, dan sinkronisasi notifikasi perangkat Anda.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2.5 flex-wrap pt-2 text-xs relative z-10">
+              <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/95 dark:bg-gray-800/90 border border-indigo-100/90 dark:border-gray-700 font-semibold text-[#191B3D] dark:text-slate-200 shadow-2xs hover:shadow-xs transition-shadow">
+                <Shield className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                <span>Akun Terverifikasi</span>
+              </span>
+
+              <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/95 dark:bg-gray-800/90 border border-indigo-100/90 dark:border-gray-700 font-semibold text-[#191B3D] dark:text-slate-200 shadow-2xs hover:shadow-xs transition-shadow">
+                <Clock className="w-3.5 h-3.5 text-amber-500" />
+                <span>Pengingat: {reminderHour}:00 WIB</span>
+              </span>
+
+              <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/95 dark:bg-gray-800/90 border border-indigo-100/90 dark:border-gray-700 font-semibold text-emerald-700 dark:text-emerald-400 shadow-2xs hover:shadow-xs transition-shadow">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                <span>PWA v1.4.0 Aktif</span>
+              </span>
+            </div>
           </div>
 
-          <div className="navy-banner-right" style={{ position: 'relative', zIndex: 40 }}>
+          {/* Right Profile Card (span 4 or 5) */}
+          <div className="lg:col-span-4 bg-gradient-to-br from-[#16193F] via-[#1B1E48] to-[#10122B] rounded-2xl p-6 sm:p-7 text-white flex flex-col justify-between shadow-lg relative overflow-hidden min-h-[165px] border border-indigo-900/50">
+            {/* Glow accent */}
             <div
-              style={{
-                background: '#FAF8F5',
-                borderRadius: 16,
-                padding: '16px 22px',
-                minWidth: 260,
-                textAlign: 'left',
-                boxShadow: '0 4px 16px rgba(0,0,0,0.08)',
-                border: '1px solid #ECE7DE',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 14,
-              }}
-            >
-              <div
-                style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: '50%',
-                  background: 'var(--primary)',
-                  color: '#FFFFFF',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontWeight: 800,
-                  fontSize: 15,
-                  flexShrink: 0,
-                }}
-              >
+              className="pointer-events-none absolute -top-12 -right-12 w-40 h-40 rounded-full bg-indigo-500/25 blur-3xl"
+              aria-hidden="true"
+            />
+
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold tracking-wider text-indigo-200/80 uppercase">
+                PROFIL PENGGUNA
+              </span>
+              <span className="px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 text-[10px] font-extrabold uppercase tracking-wide border border-indigo-400/20">
+                Personal Pro
+              </span>
+            </div>
+
+            <div className="flex items-center gap-3.5 my-3 relative z-10">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-500 text-white font-extrabold text-base flex items-center justify-center shrink-0 shadow-md ring-2 ring-white/20">
                 {initials}
               </div>
-              <div>
-                <div style={{ fontSize: 13.5, fontWeight: 800, color: 'var(--text-primary)' }}>
+              <div className="truncate">
+                <h3 className="font-extrabold text-base text-white truncate leading-tight">
                   {userName}
-                </div>
-                <div style={{ fontSize: 11.5, color: 'var(--income-color)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
-                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--income-color)' }} />
-                  Akun Personal Aktif
-                </div>
+                </h3>
+                <p className="text-xs text-indigo-200/80 truncate mt-0.5">
+                  {user?.email || 'aisyar@example.com'}
+                </p>
               </div>
+            </div>
+
+            <div className="flex items-center justify-between text-xs text-indigo-200/90 pt-3 border-t border-white/10 relative z-10">
+              <span className="flex items-center gap-1.5 font-semibold text-emerald-300">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block animate-pulse" />
+                Personal Aktif
+              </span>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="text-rose-300 hover:text-white hover:bg-rose-500/20 px-2.5 py-1 rounded-lg font-semibold flex items-center gap-1.5 cursor-pointer transition-all border border-rose-400/20"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Keluar</span>
+              </button>
             </div>
           </div>
         </div>
 
-        {/* Tab Navigation & Content Grid */}
-        <div className="settings-layout-grid" style={{ gap: 24, alignItems: 'start' }}>
-          {/* Side Tabs - Desktop sidebar / Mobile horizontal scroll */}
-          <div className="card" style={{ padding: '12px 10px', borderRadius: 16 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', padding: '8px 12px 10px', letterSpacing: '0.06em' }}>
-              Menu Pengaturan
+        {/* ===================================================================== */}
+        {/* ROW 2: 4 SUMMARY OVERVIEW CARDS (Responsive Grid)                     */}
+        {/* ===================================================================== */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Card 1: Akun Pengguna */}
+          <div className="bg-white dark:bg-[#141721] border border-[#DFE5EE] dark:border-gray-800 rounded-2xl p-5 sm:p-6 flex flex-col justify-between shadow-2xs hover:shadow-xs transition-shadow min-h-[125px]">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold tracking-wider text-[#7F8A9E] dark:text-slate-400 uppercase">
+                AKUN PENGGUNA
+              </span>
+              <div className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+                <User className="w-3.5 h-3.5" />
+              </div>
             </div>
-            {/* Mobile: horizontal scrollable tab row */}
-            <div className="settings-tab-nav">
+            <div className="text-base font-extrabold text-[#191B3D] dark:text-white truncate my-1.5">
+              {userName}
+            </div>
+            <div>
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/40">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                Akun Personal Aktif
+              </span>
+            </div>
+          </div>
+
+          {/* Card 2: Tema Tampilan */}
+          <div className="bg-white dark:bg-[#141721] border border-[#DFE5EE] dark:border-gray-800 rounded-2xl p-5 sm:p-6 flex flex-col justify-between shadow-2xs hover:shadow-xs transition-shadow min-h-[125px]">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold tracking-wider text-[#7F8A9E] dark:text-slate-400 uppercase">
+                TEMA TAMPILAN
+              </span>
+              <div className="w-7 h-7 rounded-lg bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+                {isDark ? <Moon className="w-3.5 h-3.5" /> : <Sun className="w-3.5 h-3.5" />}
+              </div>
+            </div>
+            <div className="text-base font-extrabold text-[#191B3D] dark:text-white my-1.5">
+              {isDark ? 'Mode Gelap' : 'Mode Terang'}
+            </div>
+            <div>
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700/60">
+                Sinkronisasi Sistem
+              </span>
+            </div>
+          </div>
+
+          {/* Card 3: Status Notifikasi */}
+          <div className="bg-white dark:bg-[#141721] border border-[#DFE5EE] dark:border-gray-800 rounded-2xl p-5 sm:p-6 flex flex-col justify-between shadow-2xs hover:shadow-xs transition-shadow min-h-[125px]">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold tracking-wider text-[#7F8A9E] dark:text-slate-400 uppercase">
+                STATUS NOTIFIKASI
+              </span>
+              <div className="w-7 h-7 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                <Bell className="w-3.5 h-3.5" />
+              </div>
+            </div>
+            <div className="text-base font-extrabold text-[#191B3D] dark:text-white my-1.5">
+              {permissionStatus === 'granted' ? 'Aktif (Push Web)' : 'Belum Diizinkan'}
+            </div>
+            <div>
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800/40">
+                Pengingat jam {reminderHour}:00
+              </span>
+            </div>
+          </div>
+
+          {/* Card 4: Versi Aplikasi */}
+          <div className="bg-white dark:bg-[#141721] border border-[#DFE5EE] dark:border-gray-800 rounded-2xl p-5 sm:p-6 flex flex-col justify-between shadow-2xs hover:shadow-xs transition-shadow min-h-[125px]">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold tracking-wider text-[#7F8A9E] dark:text-slate-400 uppercase">
+                VERSI APLIKASI
+              </span>
+              <div className="w-7 h-7 rounded-lg bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+                <Smartphone className="w-3.5 h-3.5" />
+              </div>
+            </div>
+            <div className="text-base font-extrabold text-[#191B3D] dark:text-white my-1.5">
+              PWA v1.4.0
+            </div>
+            <div>
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/40">
+                Tersinkronisasi Lokal
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* ===================================================================== */}
+        {/* ROW 3: TAB NAVIGATION & CONTENT (2 Kolom di Desktop / Stacked)        */}
+        {/* ===================================================================== */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          {/* TAB LIST: Desktop Left Nav (4 Kolom) / Mobile Horizontal Pills */}
+          <aside className="lg:col-span-4 bg-white dark:bg-[#141721] border border-[#DFE5EE] dark:border-gray-800 rounded-2xl p-4 sm:p-5.5 shadow-2xs">
+            <div className="hidden lg:flex items-center justify-between px-3 py-2 mb-2">
+              <span className="text-[11px] font-bold text-[#7F8A9E] dark:text-slate-400 uppercase tracking-wider">
+                MENU PENGATURAN
+              </span>
+              <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500">
+                6 Kategori
+              </span>
+            </div>
+
+            {/* Mobile / Tablet Horizontal Scrollable Pills */}
+            <div className="flex lg:flex-col gap-2 overflow-x-auto pb-1 lg:pb-0 scrollbar-none">
               {TABS.map((tab) => {
+                const IconComp = tab.icon;
                 const isActive = activeTab === tab.id;
                 return (
                   <button
                     key={tab.id}
                     type="button"
-                    className={`settings-tab-button${isActive ? ' active' : ''}`}
-                    onClick={(event) => {
-                      setActiveTab(tab.id);
-                      event.currentTarget.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'nearest',
-                        inline: 'nearest',
-                      });
-                    }}
-                    style={{
-                      width: '100%',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 12,
-                      padding: '11px 14px',
-                      borderRadius: 10,
-                      border: 'none',
-                      background: isActive ? 'var(--primary-50)' : 'transparent',
-                      color: isActive ? 'var(--primary)' : 'var(--text-secondary)',
-                      fontWeight: isActive ? 700 : 500,
-                      fontSize: 13,
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                      transition: 'all 0.15s ease',
-                      marginBottom: 4,
-                    }}
-                    onMouseOver={(e) => {
-                      if (!isActive) e.currentTarget.style.background = '#F8FAFC';
-                    }}
-                    onMouseOut={(e) => {
-                      if (!isActive) e.currentTarget.style.background = 'transparent';
-                    }}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`flex items-center justify-between px-4 py-3 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer text-left w-full ${
+                      isActive
+                        ? 'bg-gradient-to-r from-[#17193F] to-[#25285E] dark:from-indigo-600 dark:to-indigo-700 text-white shadow-md border-l-4 border-indigo-400 pl-3.5'
+                        : 'text-[#61647C] dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-gray-800/60 hover:text-[#191B3D] dark:hover:text-white'
+                    }`}
                   >
-                    <Icon
-                      name={tab.icon}
-                      size={18}
-                      style={{ color: isActive ? 'var(--primary)' : 'var(--text-muted)' }}
-                    />
-                    <span>{tab.label}</span>
-                    {isActive && (
-                      <span style={{ marginLeft: 'auto', width: 6, height: 6, borderRadius: '50%', background: 'var(--primary)' }} />
-                    )}
+                    <div className="flex items-center gap-3">
+                      <div className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${
+                        isActive
+                          ? 'bg-white/15 text-white'
+                          : 'bg-slate-100 dark:bg-gray-800 text-slate-500 dark:text-slate-400'
+                      }`}>
+                        <IconComp className="w-3.5 h-3.5 shrink-0" />
+                      </div>
+                      <span>{tab.label}</span>
+                    </div>
+                    <ChevronRight className={`hidden lg:block w-3.5 h-3.5 transition-transform ${isActive ? 'opacity-100 translate-x-0.5 text-indigo-300' : 'opacity-30'}`} />
                   </button>
                 );
               })}
             </div>
-          </div>
 
-          {/* Tab Content Panel */}
-          <div>
-            {/* TAB 1: PROFIL PENGGUNA */}
+            {/* Logout shortcut in sidebar on desktop */}
+            <div className="hidden lg:block pt-3 mt-4 border-t border-slate-100 dark:border-gray-800">
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 w-full transition-colors cursor-pointer group"
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-lg bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center group-hover:scale-105 transition-transform">
+                    <LogOut className="w-3.5 h-3.5" />
+                  </div>
+                  <span>Keluar dari Akun</span>
+                </div>
+                <span className="text-[10px] text-rose-400/80 group-hover:text-rose-600 transition-colors">Sesi Aktif</span>
+              </button>
+            </div>
+          </aside>
+
+          {/* TAB CONTENT: Right Main Panel (8 Kolom) */}
+          <section className="lg:col-span-8 bg-white dark:bg-[#141721] border border-[#DFE5EE] dark:border-gray-800 rounded-2xl p-6 sm:p-8 shadow-2xs space-y-6">
+            {/* ----------------------------------------------------------------- */}
+            {/* TAB 1: PROFIL PENGGUNA                                            */}
+            {/* ----------------------------------------------------------------- */}
             {activeTab === 'profile' && (
-              <div className="card settings-content-card" style={{ padding: '28px 32px', borderRadius: 16 }}>
-                <div style={{ borderBottom: '1px solid var(--border-light)', paddingBottom: 16, marginBottom: 24 }}>
-                  <h2 style={{ fontSize: 17, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.3px' }}>
-                    Profil & Identitas
-                  </h2>
-                  <p style={{ fontSize: 12.5, color: 'var(--text-muted)', marginTop: 4 }}>
-                    Informasi akun Anda yang digunakan untuk personalisasi ruang finansial Money Management.
-                  </p>
+              <div className="space-y-6 animate-fade-in">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100 dark:border-gray-800">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-lg font-extrabold text-[#191B3D] dark:text-white">
+                        Profil Pengguna
+                      </h2>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/40">
+                        Akun Utama
+                      </span>
+                    </div>
+                    <p className="text-xs text-[#7F8A9E] dark:text-slate-400 mt-0.5">
+                      Perbarui nama dan alamat email yang terhubung dengan akun Anda
+                    </p>
+                  </div>
+                </div>
+
+                {/* Avatar Mini Card preview */}
+                <div className="p-4 sm:p-5 rounded-xl bg-slate-50 dark:bg-gray-900/60 border border-[#E2E8F0] dark:border-gray-800 flex items-center justify-between flex-wrap gap-4">
+                  <div className="flex items-center gap-3.5">
+                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-600 via-indigo-700 to-violet-600 text-white font-extrabold text-lg flex items-center justify-center shrink-0 shadow-md ring-2 ring-indigo-200/60 dark:ring-indigo-900/60">
+                      {initials}
+                    </div>
+                    <div>
+                      <div className="font-extrabold text-sm text-[#191B3D] dark:text-white flex items-center gap-1.5">
+                        <span>{userName}</span>
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                      </div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                        {user?.email || 'aisyar@example.com'}
+                      </p>
+                      <span className="inline-block mt-1 text-[10px] font-semibold text-indigo-600 dark:text-indigo-400">
+                        Personal Pro Member · Sejak 2026
+                      </span>
+                    </div>
+                  </div>
                 </div>
 
                 {profileMessage.text && (
                   <div
-                    className={profileMessage.type === 'success' ? 'alert alert-success' : 'alert alert-error'}
-                    style={{ marginBottom: 20 }}
+                    className={`flex items-center gap-2 p-3.5 rounded-xl text-xs font-semibold ${
+                      profileMessage.type === 'success'
+                        ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-900'
+                        : 'bg-rose-50 text-rose-800 border border-rose-200 dark:bg-rose-950/50 dark:text-rose-300 dark:border-rose-900'
+                    }`}
                   >
-                    <Icon name={profileMessage.type === 'success' ? 'check_circle' : 'error'} size={18} />
+                    {profileMessage.type === 'success' ? <Check className="w-4 h-4 text-emerald-600" /> : <AlertCircle className="w-4 h-4 text-rose-600" />}
                     <span>{profileMessage.text}</span>
                   </div>
                 )}
 
-                <form onSubmit={handleProfileSubmit}>
-                  {/* Avatar Section */}
-                  <div className="settings-profile-avatar-row" style={{ display: 'flex', alignItems: 'center', gap: 20, marginBottom: 24, padding: '16px', background: 'var(--bg-card2)', borderRadius: 12, border: '1px solid var(--border-light)' }}>
-                    <div
-                      className="settings-profile-avatar"
-                      style={{
-                        width: 56,
-                        height: 56,
-                        borderRadius: '50%',
-                        background: 'var(--primary)',
-                        color: '#FFFFFF',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontWeight: 800,
-                        fontSize: 20,
-                        boxShadow: '0 4px 12px rgba(14,32,56,0.18)',
-                      }}
-                    >
-                      {initials}
+                <form onSubmit={handleProfileSubmit} className="space-y-5 text-xs">
+                  <div>
+                    <label className="block font-bold text-[#475569] dark:text-slate-300 mb-1.5">
+                      Nama Lengkap
+                    </label>
+                    <div className="relative">
+                      <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                      <input
+                        type="text"
+                        value={profileForm.name}
+                        onChange={(e) => setProfileForm((f) => ({ ...f, name: e.target.value }))}
+                        required
+                        placeholder="Nama lengkap Anda"
+                        className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-50/70 dark:bg-gray-900 border border-[#D5DCE8] dark:border-gray-700 text-[#191B3D] dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-medium transition-all shadow-2xs"
+                      />
                     </div>
-                    <div className="settings-profile-avatar-details">
-                      <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text-primary)' }}>
-                        Inisial Profil: {initials}
-                      </div>
-                      <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2 }}>
-                        Inisial avatar dihasilkan otomatis dari nama lengkap Anda.
-                      </div>
+                    <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1.5">
+                      Nama ini ditampilkan pada dasbor, laporan rekap, dan kuitansi transaksi.
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-[#475569] dark:text-slate-300 mb-1.5">
+                      Alamat Email
+                    </label>
+                    <div className="relative">
+                      <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                      <input
+                        type="email"
+                        value={profileForm.email}
+                        onChange={(e) => setProfileForm((f) => ({ ...f, email: e.target.value }))}
+                        required
+                        placeholder="email@anda.com"
+                        className="w-full pl-10 pr-28 py-3 rounded-xl bg-slate-50/70 dark:bg-gray-900 border border-[#D5DCE8] dark:border-gray-700 text-[#191B3D] dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-medium transition-all shadow-2xs"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/40">
+                        <Check className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                        Terverifikasi
+                      </span>
                     </div>
+                    <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1.5">
+                      Digunakan untuk login, pemulihan akun, dan pengiriman ringkasan mingguan.
+                    </p>
                   </div>
 
-                  <div className="settings-profile-logout">
-                    <div>
-                      <div className="settings-profile-logout-title">Keluar dari akun</div>
-                      <div className="settings-profile-logout-description">
-                        Akhiri sesi Money Management di perangkat ini.
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      className="settings-profile-logout-button"
-                      onClick={handleLogout}
-                    >
-                      <Icon name="logout" size={17} />
-                      <span>Keluar</span>
-                    </button>
-                  </div>
-
-                  {/* Form fields */}
-                  <div className="form-group">
-                    <label className="form-label">Nama Lengkap</label>
-                    <input
-                      type="text"
-                      className="form-input"
-                      value={profileForm.name}
-                      onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
-                      placeholder="Masukkan nama lengkap Anda"
-                      required
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label className="form-label">Alamat Email</label>
-                    <input
-                      type="email"
-                      className="form-input"
-                      value={profileForm.email}
-                      onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
-                      placeholder="nama@email.com"
-                      required
-                    />
-                    <span style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>
-                      Digunakan untuk autentikasi saat masuk ke Money Management.
-                    </span>
-                  </div>
-
-                  <div className="form-group">
-                    <label className="form-label">Mata Uang Utama</label>
-                    <select
-                      className="form-select"
-                      value={profileForm.currency}
-                      onChange={(e) => setProfileForm({ ...profileForm, currency: e.target.value })}
-                      disabled
-                      style={{ opacity: 0.85 }}
-                    >
-                      <option value="IDR">IDR - Rupiah Indonesia (Rp)</option>
-                    </select>
-                    <span style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>
-                      Format pencatatan baku sistem disesuaikan dengan Rupiah Indonesia.
-                    </span>
-                  </div>
-
-                  <div style={{ marginTop: 28, display: 'flex', justifyContent: 'flex-end' }}>
+                  <div className="pt-4 flex items-center justify-end gap-3 border-t border-slate-100 dark:border-gray-800">
                     <button
                       type="submit"
-                      className="btn btn-primary"
                       disabled={profileLoading}
-                      style={{ padding: '10px 24px', fontSize: 13.5, fontWeight: 700 }}
+                      className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold bg-gradient-to-r from-[#17193F] to-[#25285E] hover:from-[#1F2250] hover:to-[#2D3070] dark:from-indigo-600 dark:to-indigo-700 dark:hover:from-indigo-500 dark:hover:to-indigo-600 text-white shadow-sm hover:shadow-md transition-all cursor-pointer disabled:opacity-50"
                     >
-                      {profileLoading ? 'Menyimpan...' : 'Simpan Perubahan Profil'}
+                      <Check className="w-3.5 h-3.5" />
+                      <span>{profileLoading ? 'Menyimpan...' : 'Simpan Profil'}</span>
                     </button>
                   </div>
                 </form>
               </div>
             )}
 
-            {/* TAB 2: PREFERENSI KEUANGAN */}
+            {/* ----------------------------------------------------------------- */}
+            {/* TAB 2: PREFERENSI KEUANGAN                                        */}
+            {/* ----------------------------------------------------------------- */}
             {activeTab === 'preferences' && (
-              <div className="card" style={{ padding: '28px 32px', borderRadius: 16 }}>
-                <div style={{ borderBottom: '1px solid var(--border-light)', paddingBottom: 16, marginBottom: 24 }}>
-                  <h2 style={{ fontSize: 17, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.3px' }}>
-                    Preferensi Siklus & Pembukuan
+              <div className="space-y-5 animate-fade-in">
+                <div>
+                  <h2 className="text-base font-extrabold text-[#191B3D] dark:text-white">
+                    Preferensi Keuangan
                   </h2>
-                  <p style={{ fontSize: 12.5, color: 'var(--text-muted)', marginTop: 4 }}>
-                    Sesuaikan perhitungan siklus anggaran bulanan dan preferensi visual aplikasi.
+                  <p className="text-xs text-[#7F8A9E] dark:text-slate-400">
+                    Atur kebiasaan pembukuan, format tanggal, dan tampilan nominal
                   </p>
                 </div>
 
                 {prefSaved && (
-                  <div className="alert alert-success" style={{ marginBottom: 20 }}>
-                    <Icon name="check_circle" size={18} />
-                    <span>Preferensi keuangan berhasil disimpan!</span>
+                  <div className="flex items-center gap-2 p-3 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 text-xs font-semibold">
+                    <Check className="w-4 h-4" />
+                    <span>Preferensi berhasil disimpan!</span>
                   </div>
                 )}
 
-                <div className="form-group">
-                  <label className="form-label">Awal Siklus Anggaran Bulanan (Tanggal Gajian)</label>
-                  <select
-                    className="form-select"
-                    value={preferences.budgetCycleDay}
-                    onChange={(e) => setPreferences({ ...preferences, budgetCycleDay: e.target.value })}
-                  >
-                    <option value="1">Tanggal 1 setiap bulan (Awal Kalender)</option>
-                    <option value="25">Tanggal 25 setiap bulan (Standar Gajian Indonesia)</option>
-                    <option value="26">Tanggal 26 setiap bulan</option>
-                    <option value="28">Tanggal 28 setiap bulan</option>
-                    <option value="15">Tanggal 15 setiap bulan (Tengah Bulan)</option>
-                  </select>
-                  <span style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>
-                    Laporan dan kuota anggaran akan dihitung berdasarkan siklus tanggal ini.
-                  </span>
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Format Tampilan Tanggal</label>
-                  <select
-                    className="form-select"
-                    value={preferences.dateFormat}
-                    onChange={(e) => setPreferences({ ...preferences, dateFormat: e.target.value })}
-                  >
-                    <option value="DD/MM/YYYY">DD/MM/YYYY (Contoh: 30/09/2026)</option>
-                    <option value="YYYY-MM-DD">YYYY-MM-DD (Standar ISO: 2026-09-30)</option>
-                    <option value="D MMMM YYYY">D MMMM YYYY (Contoh: 30 September 2026)</option>
-                  </select>
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Tipe Transaksi Default Saat Tambah Cepat</label>
-                  <div style={{ display: 'flex', gap: 14, marginTop: 8 }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, cursor: 'pointer' }}>
-                      <input
-                        type="radio"
-                        name="defaultTxType"
-                        value="expense"
-                        checked={preferences.defaultTxType === 'expense'}
-                        onChange={(e) => setPreferences({ ...preferences, defaultTxType: e.target.value })}
-                      />
-                      <span>Pengeluaran (Rekomendasi)</span>
+                <div className="space-y-4 text-xs">
+                  <div>
+                    <label className="block font-bold text-[#475569] dark:text-slate-300 mb-1">
+                      Tanggal Mulai Siklus Anggaran Bulanan
                     </label>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, cursor: 'pointer' }}>
+                    <select
+                      value={preferences.budgetCycleDay}
+                      onChange={(e) => setPreferences((p) => ({ ...p, budgetCycleDay: e.target.value }))}
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-gray-900 border border-[#DFE5EE] dark:border-gray-700 text-[#191B3D] dark:text-white outline-none"
+                    >
+                      {[1, 5, 10, 15, 20, 25, 28].map((day) => (
+                        <option key={day} value={String(day)}>
+                          Tanggal {day} setiap bulan (Gajian / Awal Periode)
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-[#475569] dark:text-slate-300 mb-1">
+                      Format Tanggal
+                    </label>
+                    <select
+                      value={preferences.dateFormat}
+                      onChange={(e) => setPreferences((p) => ({ ...p, dateFormat: e.target.value }))}
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-gray-900 border border-[#DFE5EE] dark:border-gray-700 text-[#191B3D] dark:text-white outline-none"
+                    >
+                      <option value="DD/MM/YYYY">DD/MM/YYYY (Contoh: 17/11/2026)</option>
+                      <option value="YYYY-MM-DD">YYYY-MM-DD (Standar Internasional: 2026-11-17)</option>
+                    </select>
+                  </div>
+
+                  {/* Toggle: Sembunyikan saldo dasbor */}
+                  <div className="p-3.5 rounded-xl border border-[#DFE5EE] dark:border-gray-800 bg-slate-50/60 dark:bg-gray-800/30 flex items-center justify-between">
+                    <div>
+                      <div className="font-bold text-[#191B3D] dark:text-white">
+                        Sembunyikan Saldo Utama di Dasbor
+                      </div>
+                      <div className="text-[11px] text-[#7F8A9E] dark:text-slate-400 mt-0.5">
+                        Tampilkan sensor &quot;••••••&quot; secara bawaan saat membuka aplikasi
+                      </div>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer shrink-0">
                       <input
-                        type="radio"
-                        name="defaultTxType"
-                        value="income"
-                        checked={preferences.defaultTxType === 'income'}
-                        onChange={(e) => setPreferences({ ...preferences, defaultTxType: e.target.value })}
+                        type="checkbox"
+                        checked={preferences.hideBalanceDashboard}
+                        onChange={(e) =>
+                          setPreferences((p) => ({ ...p, hideBalanceDashboard: e.target.checked }))
+                        }
+                        className="sr-only peer"
                       />
-                      <span>Pemasukan</span>
+                      <div className="w-[44px] h-[24px] bg-slate-200 dark:bg-gray-700 rounded-full peer peer-focus:ring-2 peer-focus:ring-indigo-500/30 peer-checked:bg-indigo-600 dark:peer-checked:bg-indigo-500 transition-colors duration-200 after:content-[''] after:absolute after:top-[3px] after:left-[3px] after:bg-white after:rounded-full after:h-[18px] after:w-[18px] after:shadow-sm after:transition-all after:duration-200 peer-checked:after:translate-x-[20px]" />
                     </label>
                   </div>
-                </div>
 
-                {/* Tema Visual & Mode Malam */}
-                <div className="form-group" style={{ marginTop: 24, paddingTop: 20, borderTop: '1px solid var(--border-light)' }}>
-                  <label className="form-label" style={{ marginBottom: 12 }}>Tema Tampilan Aplikasi</label>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
-                    <div
-                      onClick={() => setTheme('light')}
-                      style={{
-                        padding: '16px',
-                        borderRadius: 14,
-                        border: !isDark ? '2px solid var(--primary)' : '1px solid var(--border)',
-                        background: !isDark ? 'var(--primary-50)' : 'var(--bg-card)',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 12,
-                        transition: 'all 0.18s ease',
-                        boxShadow: !isDark ? 'var(--shadow-sm)' : 'none',
-                      }}
+                  <div className="pt-2 flex justify-end">
+                    <button
+                      type="button"
+                      onClick={handleSavePreferences}
+                      className="px-5 py-2.5 rounded-xl font-bold bg-[#191B3D] hover:bg-[#252856] dark:bg-indigo-600 dark:hover:bg-indigo-500 text-white shadow-sm transition-all cursor-pointer"
                     >
-                      <div
-                        style={{
-                          width: 40,
-                          height: 40,
-                          borderRadius: 12,
-                          background: '#FEF3C7',
-                          color: '#D97706',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          flexShrink: 0,
-                        }}
-                      >
-                        <Icon name="light_mode" size={22} />
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text-primary)' }}>Mode Terang</div>
-                        <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2 }}>Cerah, bersih &amp; tajam</div>
-                      </div>
-                      {!isDark && (
-                        <div style={{ color: 'var(--primary)', fontWeight: 800, fontSize: 16 }}>✓</div>
-                      )}
-                    </div>
-
-                    <div
-                      onClick={() => setTheme('dark')}
-                      style={{
-                        padding: '16px',
-                        borderRadius: 14,
-                        border: isDark ? '2px solid var(--primary)' : '1px solid var(--border)',
-                        background: isDark ? 'var(--primary-50)' : 'var(--bg-card)',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 12,
-                        transition: 'all 0.18s ease',
-                        boxShadow: isDark ? 'var(--shadow-sm)' : 'none',
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: 40,
-                          height: 40,
-                          borderRadius: 12,
-                          background: '#1E293B',
-                          color: '#38BDF8',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          flexShrink: 0,
-                        }}
-                      >
-                        <Icon name="dark_mode" size={22} />
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text-primary)' }}>Mode Malam</div>
-                        <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2 }}>Gelap midnight, hemat daya &amp; nyaman</div>
-                      </div>
-                      {isDark && (
-                        <div style={{ color: 'var(--primary)', fontWeight: 800, fontSize: 16 }}>✓</div>
-                      )}
-                    </div>
+                      Simpan Preferensi
+                    </button>
                   </div>
-                </div>
-
-                <div style={{ marginTop: 28, display: 'flex', justifyContent: 'flex-end' }}>
-                  <button
-                    type="button"
-                    onClick={handleSavePreferences}
-                    className="btn btn-primary"
-                    style={{ padding: '10px 24px', fontSize: 13.5, fontWeight: 700 }}
-                  >
-                    Simpan Preferensi
-                  </button>
                 </div>
               </div>
             )}
 
-            {/* TAB 3: KEAMANAN & SANDI */}
+            {/* ----------------------------------------------------------------- */}
+            {/* TAB 3: KEAMANAN & SANDI                                          */}
+            {/* ----------------------------------------------------------------- */}
             {activeTab === 'security' && (
-              <div className="card" style={{ padding: '28px 32px', borderRadius: 16 }}>
-                <div style={{ borderBottom: '1px solid var(--border-light)', paddingBottom: 16, marginBottom: 24 }}>
-                  <h2 style={{ fontSize: 17, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.3px' }}>
-                    Keamanan & Kata Sandi
+              <div className="space-y-5 animate-fade-in">
+                <div>
+                  <h2 className="text-base font-extrabold text-[#191B3D] dark:text-white">
+                    Keamanan &amp; Kata Sandi
                   </h2>
-                  <p style={{ fontSize: 12.5, color: 'var(--text-muted)', marginTop: 4 }}>
-                    Lindungi privasi akun finansial Anda dengan kata sandi yang kuat dan terenkripsi.
+                  <p className="text-xs text-[#7F8A9E] dark:text-slate-400">
+                    Ubah kata sandi akun untuk perlindungan privasi finansial maksimal
                   </p>
                 </div>
 
                 {passwordMessage.text && (
                   <div
-                    className={passwordMessage.type === 'success' ? 'alert alert-success' : 'alert alert-error'}
-                    style={{ marginBottom: 20 }}
+                    className={`flex items-center gap-2 p-3 rounded-xl text-xs font-semibold ${
+                      passwordMessage.type === 'success'
+                        ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300'
+                        : 'bg-rose-50 text-rose-800 border border-rose-200 dark:bg-rose-950/50 dark:text-rose-300'
+                    }`}
                   >
-                    <Icon name={passwordMessage.type === 'success' ? 'check_circle' : 'error'} size={18} />
+                    {passwordMessage.type === 'success' ? <Check className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
                     <span>{passwordMessage.text}</span>
                   </div>
                 )}
 
-                <form onSubmit={handlePasswordSubmit}>
-                  <div className="form-group">
-                    <label className="form-label">Kata Sandi Saat Ini</label>
+                <form onSubmit={handlePasswordSubmit} className="space-y-4 text-xs">
+                  <div>
+                    <label className="block font-bold text-[#475569] dark:text-slate-300 mb-1">
+                      Kata Sandi Saat Ini
+                    </label>
                     <input
                       type="password"
-                      className="form-input"
                       value={passwordForm.currentPassword}
-                      onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
-                      placeholder="Masukkan kata sandi lama Anda"
+                      onChange={(e) =>
+                        setPasswordForm((f) => ({ ...f, currentPassword: e.target.value }))
+                      }
                       required
+                      placeholder="Masukkan kata sandi lama"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-gray-900 border border-[#DFE5EE] dark:border-gray-700 text-[#191B3D] dark:text-white outline-none focus:border-indigo-500"
                     />
                   </div>
 
-                  <div className="form-group">
-                    <label className="form-label">Kata Sandi Baru</label>
+                  <div>
+                    <label className="block font-bold text-[#475569] dark:text-slate-300 mb-1">
+                      Kata Sandi Baru (Min. 6 Karakter)
+                    </label>
                     <input
                       type="password"
-                      className="form-input"
                       value={passwordForm.newPassword}
-                      onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
-                      placeholder="Minimal 6 karakter kombinasi"
+                      onChange={(e) =>
+                        setPasswordForm((f) => ({ ...f, newPassword: e.target.value }))
+                      }
                       required
+                      placeholder="Masukkan kata sandi baru"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-gray-900 border border-[#DFE5EE] dark:border-gray-700 text-[#191B3D] dark:text-white outline-none focus:border-indigo-500"
                     />
                   </div>
 
-                  <div className="form-group">
-                    <label className="form-label">Konfirmasi Kata Sandi Baru</label>
+                  <div>
+                    <label className="block font-bold text-[#475569] dark:text-slate-300 mb-1">
+                      Ulangi Kata Sandi Baru
+                    </label>
                     <input
                       type="password"
-                      className="form-input"
                       value={passwordForm.confirmPassword}
-                      onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
-                      placeholder="Ulangi kata sandi baru"
+                      onChange={(e) =>
+                        setPasswordForm((f) => ({ ...f, confirmPassword: e.target.value }))
+                      }
                       required
+                      placeholder="Konfirmasi kata sandi baru"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-gray-900 border border-[#DFE5EE] dark:border-gray-700 text-[#191B3D] dark:text-white outline-none focus:border-indigo-500"
                     />
                   </div>
 
-                  {/* Security Highlights */}
-                  <div style={{ padding: '16px', background: 'var(--bg-card2)', borderRadius: 12, border: '1px solid var(--border-light)', margin: '20px 0' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, fontWeight: 700, color: 'var(--primary)', marginBottom: 6 }}>
-                      <Icon name="verified_user" size={18} style={{ color: 'var(--income-color)' }} />
-                      <span>Standar Keamanan Enkripsi Bcrypt</span>
-                    </div>
-                    <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5, margin: 0 }}>
-                      Kata sandi Anda disimpan menggunakan enkripsi hash salt 10 putaran standar industri. Tidak ada pihak luar yang dapat membaca kata sandi asli Anda.
-                    </p>
-                  </div>
-
-                  <div style={{ marginTop: 24, display: 'flex', justifyContent: 'flex-end' }}>
+                  <div className="pt-2 flex justify-end">
                     <button
                       type="submit"
-                      className="btn btn-primary"
                       disabled={passwordLoading}
-                      style={{ padding: '10px 24px', fontSize: 13.5, fontWeight: 700 }}
+                      className="px-5 py-2.5 rounded-xl font-bold bg-[#191B3D] hover:bg-[#252856] dark:bg-indigo-600 dark:hover:bg-indigo-500 text-white shadow-sm transition-all cursor-pointer disabled:opacity-50"
                     >
-                      {passwordLoading ? 'Memproses...' : 'Perbarui Kata Sandi'}
+                      {passwordLoading ? 'Memperbarui...' : 'Perbarui Kata Sandi'}
                     </button>
                   </div>
                 </form>
               </div>
             )}
 
-            {/* TAB 4: NOTIFIKASI */}
+            {/* ----------------------------------------------------------------- */}
+            {/* TAB 4: NOTIFIKASI & PENGINGAT                                     */}
+            {/* ----------------------------------------------------------------- */}
             {activeTab === 'notifications' && (
-              <div className="card" style={{ padding: '28px 32px', borderRadius: 16 }}>
-                <div style={{ borderBottom: '1px solid var(--border-light)', paddingBottom: 16, marginBottom: 24 }}>
-                  <h2 style={{ fontSize: 17, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.3px' }}>
-                    Pengaturan Pemberitahuan
+              <div className="space-y-5 animate-fade-in">
+                <div>
+                  <h2 className="text-base font-extrabold text-[#191B3D] dark:text-white">
+                    Notifikasi &amp; Pengingat Harian
                   </h2>
-                  <p style={{ fontSize: 12.5, color: 'var(--text-muted)', marginTop: 4 }}>
-                    Atur peringatan dini keuangan agar pengeluaran tetap terkontrol tepat waktu.
+                  <p className="text-xs text-[#7F8A9E] dark:text-slate-400">
+                    Atur pengingat catat transaksi otomatis agar pembukuan Anda selalu rapi
                   </p>
                 </div>
 
-                {notifSaved && (
-                  <div className="alert alert-success" style={{ marginBottom: 20 }}>
-                    <Icon name="check_circle" size={18} />
-                    <span>Pengaturan notifikasi berhasil diperbarui!</span>
-                  </div>
-                )}
-
-                {notifFeedback && (
-                  <div className="alert alert-success" style={{ marginBottom: 20 }}>
-                    <Icon name="notifications_active" size={18} />
-                    <span>{notifFeedback}</span>
-                  </div>
-                )}
-
-                {/* ═══════════════════════════════════════════════════════════
-                    SECTION: In-App Notification Center & Bell Alerts
-                ═══════════════════════════════════════════════════════════ */}
-                <div
-                  style={{
-                    background: 'linear-gradient(135deg, var(--primary-50) 0%, #FFFFFF 100%)',
-                    border: '1.5px solid var(--primary-light, #BFDBFE)',
-                    borderRadius: 16,
-                    padding: '24px 26px',
-                    marginBottom: 24,
-                    position: 'relative',
-                    overflow: 'hidden',
-                    boxShadow: 'var(--shadow-sm)',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <div
-                        style={{
-                          width: 44,
-                          height: 44,
-                          borderRadius: 14,
-                          background: 'var(--primary)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          flexShrink: 0,
-                          boxShadow: '0 4px 14px rgba(37, 99, 235, 0.28)',
-                        }}
-                      >
-                        <Icon name="notifications_active" size={24} style={{ color: '#FFFFFF' }} />
-                      </div>
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <h3 style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
-                            Pusat Notifikasi Langsung di Aplikasi 🔔
-                          </h3>
-                        </div>
-                        <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: '3px 0 0' }}>
-                          Pemberitahuan keuangan otomatis masuk ke ikon lonceng &amp; layar HP Anda tanpa perlu WhatsApp
-                        </p>
-                      </div>
+                {/* Permission Card */}
+                <div className="p-4 rounded-xl border border-indigo-100 dark:border-indigo-900/50 bg-indigo-50/50 dark:bg-indigo-950/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                  <div>
+                    <div className="font-extrabold text-indigo-900 dark:text-indigo-300 flex items-center gap-1.5">
+                      <Bell className="w-4 h-4 text-indigo-600" />
+                      <span>Status Izin Notifikasi Layar: {permissionStatus.toUpperCase()}</span>
                     </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span
-                        style={{
-                          fontSize: 11.5,
-                          fontWeight: 700,
-                          padding: '5px 12px',
-                          borderRadius: 999,
-                          background: 'var(--income-bg, #DCFCE7)',
-                          color: 'var(--income-color, #16A34A)',
-                          border: '1px solid #86EFAC',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 5,
-                        }}
-                      >
-                        <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--income-color, #16A34A)' }} />
-                        Lonceng In-App Aktif
-                      </span>
-                    </div>
+                    <p className="text-[#64748B] dark:text-slate-400 mt-1">
+                      {permissionStatus === 'granted'
+                        ? 'Notifikasi aktif dan dapat mengirim pengingat ke layar HP / Browser.'
+                        : 'Izinkan notifikasi agar aplikasi dapat mengirim pengingat tepat waktu.'}
+                    </p>
                   </div>
 
-                  {/* 3 Highlight Cards */}
-                  <div
-                    style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-                      gap: 12,
-                      marginBottom: 18,
-                    }}
-                  >
-                    <div
-                      style={{
-                        background: 'var(--bg-card)',
-                        padding: '14px 16px',
-                        borderRadius: 12,
-                        border: '1px solid var(--border-light)',
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                        <Icon name="payments" size={17} style={{ color: 'var(--primary)' }} />
-                        <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-primary)' }}>
-                          Riwayat Transaksi
-                        </span>
-                      </div>
-                      <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.45 }}>
-                        Otomatis mencatat nominal pemasukan/pengeluaran dan total harian di menu lonceng.
-                      </div>
-                    </div>
-
-                    <div
-                      style={{
-                        background: 'var(--bg-card)',
-                        padding: '14px 16px',
-                        borderRadius: 12,
-                        border: '1px solid var(--border-light)',
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                        <Icon name="alarm" size={17} style={{ color: '#D97706' }} />
-                        <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-primary)' }}>
-                          Pengingat Jam 20:00 WIB
-                        </span>
-                      </div>
-                      <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.45 }}>
-                        Peringatan otomatis muncul di lonceng &amp; layar jika kamu belum mencatat transaksi hari ini.
-                      </div>
-                    </div>
-
-                    <div
-                      style={{
-                        background: 'var(--bg-card)',
-                        padding: '14px 16px',
-                        borderRadius: 12,
-                        border: '1px solid var(--border-light)',
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                        <Icon name="security" size={17} style={{ color: 'var(--income-color)' }} />
-                        <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-primary)' }}>
-                          100% Aman &amp; Privat
-                        </span>
-                      </div>
-                      <div style={{ fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.45 }}>
-                        Tidak membutuhkan OTP ataupun pembagian nomor HP ke platform pihak ketiga.
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Actions to test notifications */}
-                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                  {permissionStatus !== 'granted' && (
                     <button
                       type="button"
-                      onClick={handleTestLockScreen}
-                      disabled={lockCountdown !== null}
-                      style={{
-                        background: 'linear-gradient(135deg, #1E293B 0%, #0F172A 100%)',
-                        color: '#38BDF8',
-                        border: '1.5px solid #38BDF8',
-                        borderRadius: 10,
-                        padding: '10px 18px',
-                        fontSize: 12.5,
-                        fontWeight: 700,
-                        cursor: lockCountdown !== null ? 'wait' : 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 7,
-                        boxShadow: '0 4px 14px rgba(15, 23, 42, 0.28)',
-                        transition: 'all 0.15s ease',
-                      }}
+                      onClick={handleEnablePermission}
+                      className="px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs cursor-pointer whitespace-nowrap"
                     >
-                      <Icon name="screen_lock_portrait" size={17} />
-                      <span>
-                        {lockCountdown !== null
-                          ? `⏳ Kunci Layar HP Sekarang (${lockCountdown}s)...`
-                          : '🔒 Tes Notifikasi Lock Screen HP'}
-                      </span>
+                      Aktifkan Izin
                     </button>
-
-                    <button
-                      type="button"
-                      onClick={handleTestInApp}
-                      style={{
-                        background: 'var(--primary)',
-                        color: '#FFFFFF',
-                        border: 'none',
-                        borderRadius: 10,
-                        padding: '10px 18px',
-                        fontSize: 12.5,
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 7,
-                        transition: 'all 0.15s ease',
-                      }}
-                    >
-                      <Icon name="notifications" size={16} />
-                      <span>🔔 Tes Kirim ke Lonceng</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={handleTestPush}
-                      style={{
-                        background: 'var(--bg-card)',
-                        color: 'var(--primary)',
-                        border: '1.5px solid var(--primary-light, #93C5FD)',
-                        borderRadius: 10,
-                        padding: '10px 18px',
-                        fontSize: 12.5,
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 7,
-                      }}
-                    >
-                      <Icon name="smartphone" size={16} />
-                      <span>📱 Tes Notifikasi Layar Aktif</span>
-                    </button>
-                  </div>
-                </div>
-
-
-                <div
-                  style={{
-                    background: 'var(--bg-card2)',
-                    border: '1.5px solid var(--primary-light, #93C5FD)',
-                    borderRadius: 14,
-                    padding: '20px 22px',
-                    marginBottom: 20,
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <Icon name="smartphone" size={20} style={{ color: 'var(--primary)' }} />
-                        <h3 style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
-                          Pengingat Harian ke HP &amp; Browser 📱
-                        </h3>
-                      </div>
-                      <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4, marginBottom: 0, maxWidth: 520, lineHeight: 1.5 }}>
-                        Notifikasi otomatis muncul di HP/laptop kamu setiap pukul <strong>{reminderHour || 20}:00 WIB</strong> jika belum ada transaksi yang dicatat hari itu.
-                        Juga langsung muncul setiap kali input transaksi baru.
-                      </p>
-                    </div>
-
-                    <span
-                      style={{
-                        fontSize: 11,
-                        fontWeight: 700,
-                        padding: '4px 10px',
-                        borderRadius: 999,
-                        flexShrink: 0,
-                        background:
-                          permissionStatus === 'granted'
-                            ? 'var(--income-bg, #DCFCE7)'
-                            : '#FEF3C7',
-                        color:
-                          permissionStatus === 'granted'
-                            ? 'var(--income-color, #16A34A)'
-                            : '#D97706',
-                      }}
-                    >
-                      {permissionStatus === 'granted' ? '✅ Notif HP Aktif' : '⚠️ Izin Belum Aktif'}
-                    </span>
-                  </div>
-
-                  {/* Cara Kerja Box */}
-                  <div style={{ background: permissionStatus === 'granted' ? '#F0FDF4' : '#FFFBEB', border: `1px solid ${permissionStatus === 'granted' ? '#BBF7D0' : '#FDE68A'}`, borderRadius: 10, padding: '12px 16px', marginBottom: 16 }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: permissionStatus === 'granted' ? '#15803D' : '#92400E', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <Icon name={permissionStatus === 'granted' ? 'check_circle' : 'info'} size={15} />
-                      {permissionStatus === 'granted' ? 'Notifikasi HP sudah aktif! Cara kerjanya:' : 'Cara mengaktifkan notifikasi di HP kamu:'}
-                    </div>
-                    {permissionStatus === 'granted' ? (
-                      <ol style={{ margin: 0, paddingLeft: 18, fontSize: 11.5, color: '#166534', lineHeight: 1.7 }}>
-                        <li>Buka website ini di <strong>browser HP</strong> (Chrome Android/Safari iOS)</li>
-                        <li>Notifikasi otomatis muncul di <strong>notification bar HP</strong> pukul <strong>{reminderHour || 20}:00 WIB</strong></li>
-                        <li>Juga langsung muncul setiap kali kamu <strong>input transaksi baru</strong></li>
-                        <li>Website harus pernah dibuka di HP-mu minimal sekali untuk aktif</li>
-                      </ol>
-                    ) : (
-                      <ol style={{ margin: 0, paddingLeft: 18, fontSize: 11.5, color: '#92400E', lineHeight: 1.7 }}>
-                        <li>Klik tombol <strong>&quot;Aktifkan Notifikasi HP&quot;</strong> di bawah ini</li>
-                        <li>Klik <strong>&quot;Allow / Izinkan&quot;</strong> saat browser meminta izin</li>
-                        <li>Buka website ini juga di <strong>Chrome HP / browser HP-mu</strong>, lakukan langkah yang sama</li>
-                        <li>Notifikasi akan muncul di <strong>notification bar HP</strong> seperti WA/Instagram</li>
-                      </ol>
-                    )}
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#EFF6FF', borderRadius: 10, padding: '12px 14px', border: '1.5px solid #BFDBFE' }}>
-                      <div style={{ fontSize: 22 }}>🔔</div>
-                      <div>
-                        <div style={{ fontSize: 12.5, fontWeight: 800, color: '#1D4ED8' }}>Notifikasi Browser Jam 20:00</div>
-                        <div style={{ fontSize: 11, color: '#3B82F6', marginTop: 2 }}>Muncul otomatis di layar HP/laptop pukul <strong>20:00</strong> jika belum ada transaksi hari ini.</div>
-                      </div>
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, flexWrap: 'wrap' }}>
-                      {permissionStatus !== 'granted' ? (
-                        <button
-                          type="button"
-                          className="btn btn-primary"
-                          onClick={handleEnablePermission}
-                          style={{ padding: '9px 16px', fontSize: 12.5, fontWeight: 700, gap: 6 }}
-                        >
-                          <Icon name="notifications_active" size={16} />
-                          <span>Aktifkan Notifikasi HP</span>
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          className="btn btn-secondary"
-                          onClick={handleTestPush}
-                          style={{ padding: '9px 16px', fontSize: 12.5, fontWeight: 700, gap: 6 }}
-                        >
-                          <Icon name="send" size={16} />
-                          <span>Tes Notifikasi Sekarang</span>
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Info Box: Keterbatasan Web Push */}
-                <div style={{ background: '#F8FAFC', border: '1px solid var(--border-light)', borderRadius: 10, padding: '12px 16px', marginBottom: 20 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <Icon name="info" size={14} /> Cara Notifikasi Muncul di HP
-                  </div>
-                  <p style={{ fontSize: 11.5, color: 'var(--text-muted)', margin: 0, lineHeight: 1.65 }}>
-                    Notifikasi ini adalah <strong>Web Browser Notification</strong> — muncul seperti notifikasi WhatsApp/Instagram di HP kamu,
-                    selama kamu pernah membuka website ini di browser HP (Chrome direkomendasikan) dan mengizinkan notifikasi.
-                    Service Worker berjalan di background browser, sehingga notifikasi bisa muncul meski tab sudah diminimize.
-                    <br /><br />
-                    <strong style={{ color: 'var(--primary)' }}>Penting:</strong> Buka website ini di browser HP kamu → izinkan notifikasi → selesai!
-                    Notifikasi jam 20:00 dan saat input transaksi akan langsung muncul di notification bar HP-mu.
-                  </p>
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: -4 }}>
-                    Jenis Peringatan Keuangan Otomatis
-                  </div>
-
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 18px', background: 'var(--bg-card2)', borderRadius: 12, border: '1px solid var(--border-light)' }}>
-                    <div>
-                      <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text-primary)' }}>
-                        Peringatan Tagihan Jatuh Tempo
-                      </div>
-                      <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
-                        Ingatkan 1-2 hari sebelum tagihan rutin jatuh tempo agar tidak terkena denda.
-                      </div>
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={notifSettings.billDueReminder}
-                      onChange={(e) => setNotifSettings({ ...notifSettings, billDueReminder: e.target.checked })}
-                      style={{ width: 20, height: 20, cursor: 'pointer', accentColor: 'var(--primary)' }}
-                    />
-                  </div>
-
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 18px', background: 'var(--bg-card2)', borderRadius: 12, border: '1px solid var(--border-light)' }}>
-                    <div>
-                      <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text-primary)' }}>
-                        Peringatan Kuota Anggaran &gt; 80%
-                      </div>
-                      <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
-                        Beri notifikasi warna kuning/merah saat pengeluaran mendekati atau melampaui batas anggaran.
-                      </div>
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={notifSettings.budgetOverrunAlert}
-                      onChange={(e) => setNotifSettings({ ...notifSettings, budgetOverrunAlert: e.target.checked })}
-                      style={{ width: 20, height: 20, cursor: 'pointer', accentColor: 'var(--primary)' }}
-                    />
-                  </div>
-
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 18px', background: 'var(--bg-card2)', borderRadius: 12, border: '1px solid var(--border-light)' }}>
-                    <div>
-                      <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text-primary)' }}>
-                        Pencapaian Target Tabungan
-                      </div>
-                      <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
-                        Rayakan notifikasi apresiasi saat tujuan tabungan berhasil mencapai 100%.
-                      </div>
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={notifSettings.savingsMilestoneAlert}
-                      onChange={(e) => setNotifSettings({ ...notifSettings, savingsMilestoneAlert: e.target.checked })}
-                      style={{ width: 20, height: 20, cursor: 'pointer', accentColor: 'var(--primary)' }}
-                    />
-                  </div>
-
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 18px', background: 'var(--bg-card2)', borderRadius: 12, border: '1px solid var(--border-light)' }}>
-                    <div>
-                      <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text-primary)' }}>
-                        Rangkuman Finansial Mingguan
-                      </div>
-                      <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
-                        Kirim ringkasan tren saldo mingguan ke panel notifikasi.
-                      </div>
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={notifSettings.weeklyDigest}
-                      onChange={(e) => setNotifSettings({ ...notifSettings, weeklyDigest: e.target.checked })}
-                      style={{ width: 20, height: 20, cursor: 'pointer', accentColor: 'var(--primary)' }}
-                    />
-                  </div>
-                </div>
-
-                <div style={{ marginTop: 28, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 14, flexWrap: 'wrap' }}>
-                  {notifSaved && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#16A34A', fontSize: 13, fontWeight: 700, background: '#DCFCE7', padding: '6px 14px', borderRadius: 8, border: '1px solid #86EFAC' }}>
-                      <Icon name="check_circle" size={17} />
-                      <span>Pengaturan notifikasi berhasil disimpan!</span>
-                    </div>
                   )}
+                </div>
+
+                {/* Test buttons */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1 text-xs">
                   <button
                     type="button"
-                    onClick={handleSaveNotifs}
-                    disabled={notifSaving}
-                    className="btn btn-primary"
-                    style={{
-                      padding: '10px 24px',
-                      fontSize: 13.5,
-                      fontWeight: 700,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 8,
-                      background: notifSaved ? '#16A34A' : undefined,
-                      borderColor: notifSaved ? '#16A34A' : undefined,
-                      transition: 'all 0.2s ease',
-                      cursor: notifSaving ? 'not-allowed' : 'pointer',
-                      opacity: notifSaving ? 0.75 : 1,
-                    }}
+                    onClick={handleTestPush}
+                    className="p-3 rounded-xl border border-[#DFE5EE] dark:border-gray-800 bg-slate-50 dark:bg-gray-800/40 hover:bg-slate-100 font-semibold text-[#191B3D] dark:text-white transition-all cursor-pointer text-center"
                   >
-                    <Icon name={notifSaving ? 'hourglass_empty' : notifSaved ? 'check' : 'save'} size={18} />
-                    <span>{notifSaving ? 'Menyimpan...' : notifSaved ? 'Tersimpan!' : 'Simpan Pengaturan Notifikasi'}</span>
+                    Uji Notifikasi Layar
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleTestLockScreen}
+                    className="p-3 rounded-xl border border-[#DFE5EE] dark:border-gray-800 bg-slate-50 dark:bg-gray-800/40 hover:bg-slate-100 font-semibold text-[#191B3D] dark:text-white transition-all cursor-pointer text-center"
+                  >
+                    {lockCountdown !== null ? `Kunci Layar (${lockCountdown}s)` : 'Uji Lock Screen HP'}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleTestInApp}
+                    className="p-3 rounded-xl border border-[#DFE5EE] dark:border-gray-800 bg-slate-50 dark:bg-gray-800/40 hover:bg-slate-100 font-semibold text-[#191B3D] dark:text-white transition-all cursor-pointer text-center"
+                  >
+                    Uji Lonceng In-App
+                  </button>
+                </div>
+
+                {/* Toggles */}
+                <div className="space-y-3 pt-2 text-xs">
+                  <div className="p-3.5 rounded-xl border border-[#DFE5EE] dark:border-gray-800 bg-slate-50/60 dark:bg-gray-800/20 flex items-center justify-between">
+                    <div>
+                      <div className="font-bold text-[#191B3D] dark:text-white">
+                        Pengingat Tagihan Rutin Jatuh Tempo
+                      </div>
+                      <div className="text-[11px] text-[#7F8A9E] dark:text-slate-400">
+                        Peringatkan 2 hari sebelum tanggal pembayaran tagihan
+                      </div>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                      <input
+                        type="checkbox"
+                        checked={notifSettings.billDueReminder}
+                        onChange={(e) =>
+                          setNotifSettings((n) => ({ ...n, billDueReminder: e.target.checked }))
+                        }
+                        className="sr-only peer"
+                      />
+                      <div className="w-[44px] h-[24px] bg-slate-200 dark:bg-gray-700 rounded-full peer peer-focus:ring-2 peer-focus:ring-indigo-500/30 peer-checked:bg-indigo-600 dark:peer-checked:bg-indigo-500 transition-colors duration-200 after:content-[''] after:absolute after:top-[3px] after:left-[3px] after:bg-white after:rounded-full after:h-[18px] after:w-[18px] after:shadow-sm after:transition-all after:duration-200 peer-checked:after:translate-x-[20px]" />
+                    </label>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl border border-[#DFE5EE] dark:border-gray-800 bg-slate-50/60 dark:bg-gray-800/20 flex items-center justify-between">
+                    <div>
+                      <div className="font-bold text-[#191B3D] dark:text-white">
+                        Peringatan Anggaran Kategori Melebihi Batas
+                      </div>
+                      <div className="text-[11px] text-[#7F8A9E] dark:text-slate-400">
+                        Beri notifikasi instan saat pengeluaran melampaui pagu anggaran
+                      </div>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                      <input
+                        type="checkbox"
+                        checked={notifSettings.budgetOverrunAlert}
+                        onChange={(e) =>
+                          setNotifSettings((n) => ({ ...n, budgetOverrunAlert: e.target.checked }))
+                        }
+                        className="sr-only peer"
+                      />
+                      <div className="w-[44px] h-[24px] bg-slate-200 dark:bg-gray-700 rounded-full peer peer-focus:ring-2 peer-focus:ring-indigo-500/30 peer-checked:bg-indigo-600 dark:peer-checked:bg-indigo-500 transition-colors duration-200 after:content-[''] after:absolute after:top-[3px] after:left-[3px] after:bg-white after:rounded-full after:h-[18px] after:w-[18px] after:shadow-sm after:transition-all after:duration-200 peer-checked:after:translate-x-[20px]" />
+                    </label>
+                  </div>
+
+                  <div className="pt-2 flex justify-end">
+                    <button
+                      type="button"
+                      disabled={notifSaving}
+                      onClick={handleSaveNotifs}
+                      className="px-5 py-2.5 rounded-xl font-bold bg-[#191B3D] hover:bg-[#252856] dark:bg-indigo-600 dark:hover:bg-indigo-500 text-white shadow-sm transition-all cursor-pointer disabled:opacity-50"
+                    >
+                      {notifSaving ? 'Menyimpan...' : 'Simpan Notifikasi'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ----------------------------------------------------------------- */}
+            {/* TAB 5: CADANGAN & DATA                                            */}
+            {/* ----------------------------------------------------------------- */}
+            {activeTab === 'data' && (
+              <div className="space-y-5 animate-fade-in text-xs">
+                <div>
+                  <h2 className="text-base font-extrabold text-[#191B3D] dark:text-white">
+                    Cadangan &amp; Ekspor Data
+                  </h2>
+                  <p className="text-xs text-[#7F8A9E] dark:text-slate-400">
+                    Unduh riwayat transaksi keuangan Anda ke format spreadsheet (CSV)
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-xl border border-[#DFE5EE] dark:border-gray-800 bg-slate-50/60 dark:bg-gray-800/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 flex items-center justify-center shrink-0">
+                      <FileSpreadsheet className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="font-bold text-[#191B3D] dark:text-white">
+                        Ekspor Seluruh Transaksi (.CSV)
+                      </div>
+                      <div className="text-[11px] text-[#7F8A9E] dark:text-slate-400 mt-0.5">
+                        Dapat dibuka langsung di Microsoft Excel, Google Sheets, atau Apple Numbers
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleExportCSV}
+                    disabled={exportLoading}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold bg-[#191B3D] hover:bg-[#252856] dark:bg-indigo-600 text-white shadow-xs cursor-pointer whitespace-nowrap disabled:opacity-50"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>{exportLoading ? 'Mengunduh...' : 'Unduh CSV'}</span>
                   </button>
                 </div>
               </div>
             )}
 
-            {/* TAB 5: CADANGAN & DATA */}
-            {activeTab === 'data' && (
-              <div className="card settings-data-card" style={{ padding: '28px 32px', borderRadius: 16 }}>
-                <div style={{ borderBottom: '1px solid var(--border-light)', paddingBottom: 16, marginBottom: 24 }}>
-                  <h2 style={{ fontSize: 17, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.3px' }}>
-                    Cadangan Data & Ekspor
+            {/* ----------------------------------------------------------------- */}
+            {/* TAB 6: UNDUH APLIKASI / PWA                                      */}
+            {/* ----------------------------------------------------------------- */}
+            {activeTab === 'app' && (
+              <div className="space-y-5 animate-fade-in text-xs">
+                <div>
+                  <h2 className="text-base font-extrabold text-[#191B3D] dark:text-white">
+                    Aplikasi Mobile (PWA)
                   </h2>
-                  <p style={{ fontSize: 12.5, color: 'var(--text-muted)', marginTop: 4 }}>
-                    Unduh salinan berkas catatan keuangan Anda dalam format file yang dapat dibuka di spreadsheet seperti Microsoft Excel atau Google Sheets.
+                  <p className="text-xs text-[#7F8A9E] dark:text-slate-400">
+                    Pasang aplikasi di layar utama HP Anda untuk akses cepat dan offline
                   </p>
                 </div>
 
-                <div className="settings-data-list" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                  {/* Export CSV Card */}
-                  <div className="settings-export-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 24px', background: '#FAFBFD', borderRadius: 14, border: '1px solid var(--border)' }}>
-                    <div className="settings-export-copy">
-                      <div className="settings-export-title" style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14.5, fontWeight: 700, color: 'var(--text-primary)' }}>
-                        <Icon name="description" size={20} style={{ color: 'var(--primary)' }} />
-                        <span>Ekspor Transaksi (.CSV)</span>
-                      </div>
-                      <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4, maxWidth: 440 }}>
-                        Dapatkan seluruh data riwayat transaksi, pemasukan, pengeluaran, kategori, dan dompet dalam format tabel CSV.
-                      </p>
+                <div className="p-4 rounded-xl border border-indigo-100 dark:border-indigo-900/50 bg-indigo-50/50 dark:bg-indigo-950/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0">
+                      <Smartphone className="w-5 h-5" />
                     </div>
+                    <div>
+                      <div className="font-bold text-[#191B3D] dark:text-white">
+                        {isInstalled ? 'Aplikasi Sudah Terpasang' : 'Pasang Money Management di HP'}
+                      </div>
+                      <div className="text-[11px] text-[#61647C] dark:text-slate-400 mt-0.5">
+                        {isInstalled
+                          ? 'Aplikasi berjalan sebagai aplikasi independen di perangkat Anda.'
+                          : 'Akses tanpa browser bar, cepat, ringan, dan mendukung notifikasi lock screen.'}
+                      </div>
+                    </div>
+                  </div>
+
+                  {!isInstalled && (
                     <button
                       type="button"
-                      className="btn btn-primary settings-export-button"
-                      onClick={handleExportCSV}
-                      disabled={exportLoading}
-                      style={{ padding: '9px 18px', fontSize: 12.5 }}
-                    >
-                      <Icon name="download" size={16} />
-                      <span>{exportLoading ? 'Mengekspor...' : 'Unduh CSV'}</span>
-                    </button>
-                  </div>
-
-                  {/* System & Storage Info Card */}
-                  <div className="settings-storage-card" style={{ padding: '20px 24px', background: 'var(--bg-card2)', borderRadius: 14, border: '1px solid var(--border-light)' }}>
-                    <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 12 }}>
-                      Informasi Database & Penyimpanan
-                    </div>
-                    <div className="settings-storage-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
-                      <div className="settings-storage-item" style={{ padding: '12px 14px', background: '#FFFFFF', borderRadius: 10, border: '1px solid var(--border-light)' }}>
-                        <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600 }}>Tipe Database</div>
-                        <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--primary)', marginTop: 2 }}>PostgreSQL</div>
-                      </div>
-                      <div className="settings-storage-item" style={{ padding: '12px 14px', background: '#FFFFFF', borderRadius: 10, border: '1px solid var(--border-light)' }}>
-                        <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600 }}>Status Sinkronisasi</div>
-                        <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--income-color)', marginTop: 2 }}>Realtime Aktif</div>
-                      </div>
-                      <div className="settings-storage-item" style={{ padding: '12px 14px', background: '#FFFFFF', borderRadius: 10, border: '1px solid var(--border-light)' }}>
-                        <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600 }}>Protokol Enkripsi</div>
-                        <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--primary)', marginTop: 2 }}>JWT + Bcrypt</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* TAB 6: UNDUH APLIKASI (PWA) */}
-            {activeTab === 'app' && (
-              <div className="card" style={{ padding: '28px 32px', borderRadius: 16 }}>
-                <div style={{ borderBottom: '1px solid var(--border-light)', paddingBottom: 16, marginBottom: 24 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-                    <div>
-                      <h2 style={{ fontSize: 17, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.3px', display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <Icon name="smartphone" size={22} style={{ color: 'var(--primary)' }} />
-                        <span>Unduh Aplikasi (PWA)</span>
-                      </h2>
-                      <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 4 }}>
-                        Gunakan Money Management layaknya aplikasi bawaan ponsel (Android &amp; iOS) atau software desktop tanpa perlu lewat toko aplikasi.
-                      </p>
-                    </div>
-                    <span
-                      style={{
-                        padding: '4px 12px',
-                        borderRadius: 20,
-                        fontSize: 12,
-                        fontWeight: 700,
-                        background: isInstalled ? 'rgba(74, 227, 181, 0.15)' : 'rgba(82, 181, 253, 0.15)',
-                        color: isInstalled ? '#059669' : '#0284C7',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 6,
+                      onClick={() => {
+                        if (deferredPrompt) {
+                          installApp();
+                        } else if (openInstallModal) {
+                          openInstallModal();
+                        }
                       }}
+                      className="px-4 py-2.5 rounded-xl font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs cursor-pointer whitespace-nowrap"
                     >
-                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: isInstalled ? '#059669' : '#0284C7' }} />
-                      {isInstalled ? 'Aplikasi Terpasang di Perangkat Ini' : 'Dapat Diunduh Langsung'}
-                    </span>
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-                  {/* Hero App Banner */}
-                  <div
-                    className="settings-app-hero"
-                    style={{
-                      background: 'linear-gradient(135deg, #0B1728 0%, #162B48 100%)',
-                      borderRadius: 16,
-                      padding: '24px 28px',
-                      color: '#FFFFFF',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      flexWrap: 'wrap',
-                      gap: 20,
-                      boxShadow: '0 8px 24px rgba(11,23,40,0.2)',
-                    }}
-                  >
-                    <div className="settings-app-hero-copy" style={{ display: 'flex', alignItems: 'center', gap: 16, maxWidth: 500 }}>
-                      <img
-                        src="/icon-192.png"
-                        alt="Money Management App Icon"
-                        style={{
-                          width: 64,
-                          height: 64,
-                          borderRadius: 16,
-                          boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
-                          border: '2px solid rgba(255,255,255,0.15)',
-                        }}
-                      />
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <span style={{ fontSize: 11, fontWeight: 700, color: '#4AE3B5', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
-                            Progressive Web App
-                          </span>
-                          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)' }}>• Bebas Iklan</span>
-                        </div>
-                        <div style={{ fontSize: 18, fontWeight: 800, marginTop: 2 }}>Money Management Mobile &amp; Desktop</div>
-                        <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.75)', marginTop: 4, lineHeight: 1.4 }}>
-                          Buka seketika dari beranda ponsel, nikmati tampilan layar penuh, dan terima pengingat catat keuangan setiap hari.
-                        </div>
-                      </div>
-                    </div>
-
-                    <div>
-                      {isInstalled ? (
-                        <div
-                          style={{
-                            background: 'rgba(74, 227, 181, 0.18)',
-                            border: '1px solid rgba(74, 227, 181, 0.4)',
-                            color: '#4AE3B5',
-                            padding: '10px 18px',
-                            borderRadius: 12,
-                            fontWeight: 700,
-                            fontSize: 13,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 8,
-                          }}
-                        >
-                          <Icon name="check_circle" size={18} />
-                          <span>Sudah Terpasang</span>
-                        </div>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={installApp}
-                          style={{
-                            padding: '12px 22px',
-                            borderRadius: 12,
-                            background: 'linear-gradient(135deg, #4AE3B5 0%, #34D399 100%)',
-                            color: '#0B1728',
-                            border: 'none',
-                            fontWeight: 800,
-                            fontSize: 13.5,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 10,
-                            cursor: 'pointer',
-                            boxShadow: '0 4px 14px rgba(74, 227, 181, 0.35)',
-                            transition: 'all 0.2s',
-                          }}
-                        >
-                          <Icon name="download" size={18} />
-                          <span>Unduh &amp; Pasang Sekarang</span>
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Keunggulan Fitur App */}
-                  <div>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 12 }}>
-                      Keunggulan Memasang Sebagai Aplikasi:
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
-                      <div style={{ padding: '16px', background: 'var(--bg-secondary, #FAFBFD)', borderRadius: 14, border: '1px solid var(--border-light)' }}>
-                        <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(74,227,181,0.15)', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
-                          <Icon name="speed" size={20} />
-                        </div>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>Super Cepat &amp; Hemat Kuota</div>
-                        <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4, lineHeight: 1.4 }}>
-                          Hanya ~2 MB, aset antarmuka langsung tersimpan di cache lokal ponsel Anda.
-                        </div>
-                      </div>
-
-                      <div style={{ padding: '16px', background: 'var(--bg-secondary, #FAFBFD)', borderRadius: 14, border: '1px solid var(--border-light)' }}>
-                        <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(82,181,253,0.15)', color: '#0284C7', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
-                          <Icon name="fullscreen" size={20} />
-                        </div>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>Layar Penuh (Standalone)</div>
-                        <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4, lineHeight: 1.4 }}>
-                          Tanpa bilah browser, navigasi mulus dan nyaman seperti aplikasi Play Store.
-                        </div>
-                      </div>
-
-                      <div style={{ padding: '16px', background: 'var(--bg-secondary, #FAFBFD)', borderRadius: 14, border: '1px solid var(--border-light)' }}>
-                        <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(245,158,11,0.15)', color: '#D97706', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
-                          <Icon name="schedule" size={20} />
-                        </div>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>Pengingat Rutin Jam 20:00</div>
-                        <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4, lineHeight: 1.4 }}>
-                          Dapatkan pengingat otomatis tiap malam langsung di layar notifikasi perangkat.
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Panduan Instalasi Langkah Demi Langkah */}
-                  <div style={{ padding: '20px 24px', background: '#F8FAFC', borderRadius: 14, border: '1px solid var(--border-light)' }}>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 14 }}>
-                      Panduan Manual Pemasangan di Berbagai Perangkat:
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}>
-                      <div style={{ background: '#FFFFFF', padding: '14px 16px', borderRadius: 12, border: '1px solid var(--border-light)' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700, color: '#0284C7' }}>
-                          <Icon name="android" size={18} />
-                          <span>Android (Google Chrome / Edge)</span>
-                        </div>
-                        <ol style={{ fontSize: 12, color: 'var(--text-secondary)', paddingLeft: 18, marginTop: 8, lineHeight: 1.5 }}>
-                          <li>Ketuk menu titik tiga (⋮) di pojok kanan atas browser.</li>
-                          <li>Pilih <strong>&quot;Pasang aplikasi&quot;</strong> atau <strong>&quot;Tambahkan ke Layar Utama&quot;</strong>.</li>
-                          <li>Ketuk <strong>&quot;Instal&quot;</strong>. Selesai!</li>
-                        </ol>
-                      </div>
-
-                      <div style={{ background: '#FFFFFF', padding: '14px 16px', borderRadius: 12, border: '1px solid var(--border-light)' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700, color: '#0B1728' }}>
-                          <Icon name="apple" size={18} />
-                          <span>iPhone / iPad (Safari)</span>
-                        </div>
-                        <ol style={{ fontSize: 12, color: 'var(--text-secondary)', paddingLeft: 18, marginTop: 8, lineHeight: 1.5 }}>
-                          <li>Buka website di browser <strong>Safari</strong>.</li>
-                          <li>Ketuk tombol <strong>Bagikan (Share ⎋)</strong> di bilah bawah.</li>
-                          <li>Pilih <strong>&quot;Tambah ke Layar Utama&quot; (+)</strong> lalu ketuk Tambah.</li>
-                        </ol>
-                      </div>
-
-                      <div style={{ background: '#FFFFFF', padding: '14px 16px', borderRadius: 12, border: '1px solid var(--border-light)' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700, color: '#7C3AED' }}>
-                          <Icon name="laptop" size={18} />
-                          <span>Laptop / PC (Windows &amp; Mac)</span>
-                        </div>
-                        <ol style={{ fontSize: 12, color: 'var(--text-secondary)', paddingLeft: 18, marginTop: 8, lineHeight: 1.5 }}>
-                          <li>Buka di Chrome, Edge, atau Brave.</li>
-                          <li>Klik ikon <strong>Install (⊕)</strong> di sebelah kanan address bar browser.</li>
-                          <li>Atau klik menu (⋮) &gt; <strong>&quot;Pasang Money Management&quot;</strong>.</li>
-                        </ol>
-                      </div>
-                    </div>
-                  </div>
+                      Pasang Sekarang
+                    </button>
+                  )}
                 </div>
               </div>
             )}
-          </div>
+          </section>
         </div>
-      </div>
-    </>
+      </main>
+    </div>
   );
 }

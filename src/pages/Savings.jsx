@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { formatRupiah, formatDateShort } from '../lib/utils';
 import Icon from '../components/Icon';
+import NotificationButton from '../components/NotificationButton';
+import ThemeToggleBtn from '../components/ThemeToggleBtn';
 
 const GOAL_CATEGORIES = [
   { label: 'Dana Darurat', icon: '🛡️', color: '#1B4332' },
@@ -208,27 +210,27 @@ export default function Savings() {
 
   return (
     <>
-      {/* Topbar */}
-      <div className="topbar">
-        <div className="topbar-left">
-          <span className="topbar-breadcrumb">Beranda · Tabungan</span>
-          <span className="topbar-title">Celengan & Impian Finansial</span>
+      {/* Topbar — standard pattern */}
+      <header className="topbar dashboard-topbar">
+        <div style={{ fontSize: 13, color: 'var(--text-secondary, #64748B)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span>Ruang personal</span>
+          <span style={{ color: 'var(--text-muted, #94A3B8)' }}>·</span>
+          <span style={{ fontWeight: 600, color: 'var(--text-primary, #0F172A)' }}>Tabungan</span>
         </div>
-        <div className="topbar-right">
-          <button
-            id="add-goal-top-btn"
-            className="btn btn-primary"
-            onClick={() => {
-              setError('');
-              setShowCreateModal(true);
-            }}
-          >
-            + Buat Impian Tabungan
-          </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: '#10B981', fontWeight: 600 }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10B981', display: 'inline-block' }} />
+            Data tersimpan
+          </div>
+          <NotificationButton />
+          <ThemeToggleBtn />
+          <span style={{ fontSize: 12.5, color: 'var(--text-secondary, #64748B)', fontWeight: 500 }}>
+            {new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date())}
+          </span>
         </div>
-      </div>
+      </header>
 
-      <div className="page-content">
+      <div className="page-content" style={{ padding: '24px 28px' }}>
         {/* Signature Biru Dongker Hero Banner */}
         <div className="navy-banner">
           <div className="navy-banner-left">
@@ -388,7 +390,7 @@ export default function Savings() {
                           </div>
                           {g.monthlyRecommendation > 0 && (
                             <div style={{ color: 'var(--primary)', fontWeight: 600, marginTop: 4 }}>
-                             <Icon name="lightbulb" size={14} color="var(--warning)" style={{ marginRight: 4 }} /> Sisihkan ~{formatRupiah(g.monthlyRecommendation)}/bulan (~{formatRupiah(g.dailyRecommendation)}/hari)
+                              <Icon name="lightbulb" size={14} color="var(--warning)" style={{ marginRight: 4 }} /> Sisihkan ~{formatRupiah(g.monthlyRecommendation)}/bulan (~{formatRupiah(g.dailyRecommendation)}/hari)
                             </div>
                           )}
                         </div>

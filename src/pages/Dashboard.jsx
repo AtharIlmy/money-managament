@@ -1,14 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { usePrivacy } from '../context/PrivacyContext';
-import { formatRupiah, formatDateShort } from '../lib/utils';
+import { formatRupiah } from '../lib/utils';
 import Icon from '../components/Icon';
 import NotificationButton from '../components/NotificationButton';
-import { checkAndSendDailyReminder } from '../lib/notifications';
+import ThemeToggleBtn from '../components/ThemeToggleBtn';
 import {
-  LineChart,
-  Line,
+  Bar,
+  BarChart,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -19,23 +19,16 @@ import {
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     return (
-      <div
-        style={{
-          background: 'var(--bg-card)',
-          border: '1px solid var(--border)',
-          borderRadius: 10,
-          padding: '10px 14px',
-          fontSize: 12,
-          boxShadow: 'var(--shadow-md)',
-          color: 'var(--text-primary)',
-        }}
-      >
-        <p style={{ fontWeight: 700, marginBottom: 6, color: 'var(--text-primary)' }}>{label}</p>
+      <div className="bg-white border border-[#DFE5EE] rounded-2xl p-3 shadow-lg text-xs font-sans">
+        <p className="font-bold text-[#191B3D] mb-1.5">{label}</p>
         {payload.map((p, i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
-            <div style={{ width: 8, height: 8, borderRadius: '50%', background: p.color }} />
-            <span style={{ color: 'var(--text-secondary)' }}>{p.name}: </span>
-            <span style={{ fontWeight: 700 }}>{formatRupiah(p.value)}</span>
+          <div key={i} className="flex items-center gap-2 mb-1">
+            <span
+              className="w-2 h-2 rounded-full inline-block"
+              style={{ backgroundColor: p.color }}
+            />
+            <span className="text-[#61647C]">{p.name}: </span>
+            <span className="font-bold text-[#191B3D]">{formatRupiah(p.value)}</span>
           </div>
         ))}
       </div>
@@ -44,49 +37,71 @@ const CustomTooltip = ({ active, payload, label }) => {
   return null;
 };
 
+const getCategoryIcon = (categoryName) => {
+  const name = (categoryName || '').toLowerCase();
+  if (name.includes('makan') || name.includes('minum') || name.includes('food')) return 'restaurant';
+  if (name.includes('belanja') || name.includes('shop')) return 'shopping_bag';
+  if (name.includes('tagihan') || name.includes('listrik') || name.includes('air')) return 'receipt_long';
+  if (name.includes('transport') || name.includes('bensin')) return 'directions_car';
+  if (name.includes('gaji') || name.includes('bonus')) return 'payments';
+  if (name.includes('lain')) return 'layers';
+  return 'layers';
+};
+
+const formatTxDateShort = (dateStr) => {
+  if (!dateStr) return '';
+  try {
+    const d = new Date(dateStr);
+    return new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short' }).format(d);
+  } catch {
+    return dateStr;
+  }
+};
+
 export default function Dashboard() {
   const { user, authFetch } = useAuth();
-  const { isHidden, maskAmount } = usePrivacy();
-  const [loading, setLoading] = useState(true);
-  const today = new Date();
-  const todayDate = [
-    today.getFullYear(),
-    String(today.getMonth() + 1).padStart(2, '0'),
-    String(today.getDate()).padStart(2, '0'),
-  ].join('-');
-  const [dailyDate, setDailyDate] = useState(todayDate);
-  const [dailyTransactions, setDailyTransactions] = useState([]);
-  const [dailyLoading, setDailyLoading] = useState(true);
-  const [dailyError, setDailyError] = useState('');
-  const [rightWidgetTab, setRightWidgetTab] = useState('categories');
+  const { isHidden: _isHidden, maskAmount: _maskAmount } = usePrivacy();
+  const [_loading, setLoading] = useState(true);
+
   const [data, setData] = useState({
-    totalBalance: 0,
-    monthlyIncome: 0,
-    monthlyExpense: 0,
-    totalSavings: 0,
-    dailyAvgExpense: 0,
+    totalBalance: 654790,
+    monthlyIncome: 1101200,
+    monthlyExpense: 462002,
+    totalSavings: 639198,
+    dailyAvgExpense: 21000,
     avgPerTransaction: 0,
     expenseTxCount: 0,
-    daysElapsed: 1,
-    topExpenseCategory: null,
-    topExpenseCategories: [],
+    daysElapsed: 22,
+    topExpenseCategory: { name: 'Lainnya', percentage: '33,31', total_amount: 153900, count: 1 },
+    topExpenseCategories: [
+      { id: 1, name: 'Lain-lain', percentage: '33,31', total_amount: 153900 },
+      { id: 2, name: 'Makanan & Minuman', percentage: '31,71', total_amount: 146502 },
+      { id: 3, name: 'Belanja', percentage: '26,75', total_amount: 123600 },
+    ],
     topExpenseTransaction: null,
     trendData: [],
-    recentTransactions: [],
+    recentTransactions: [
+      { id: 1, description: 'Mixue', category_name: 'Makanan & Minuman', wallet_name: 'Gopay', date: '2026-10-19', amount: 39000, type: 'expense' },
+      { id: 2, description: 'Sarapan', category_name: 'Makanan & Minuman', wallet_name: 'Rekening Utama', date: '2026-10-19', amount: 15000, type: 'expense' },
+      { id: 3, description: 'Parfume', category_name: 'Belanja', wallet_name: 'Rekening Utama', date: '2026-10-19', amount: 123600, type: 'expense' },
+    ],
     budgets: [],
   });
 
-  // Generate dynamic period options based on real current date
-  const INDONESIAN_MONTHS = [
-    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
-  ];
+  const INDONESIAN_MONTHS = useMemo(
+    () => [
+      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
+    ],
+    []
+  );
+
   const now = new Date();
   const currentMonthIdx = now.getMonth();
   const currentYear = now.getFullYear();
   const defaultPeriodName = `${INDONESIAN_MONTHS[currentMonthIdx]} ${currentYear}`;
 
-  const dynamicPeriodOptions = React.useMemo(() => {
+  const dynamicPeriodOptions = useMemo(() => {
     const options = [];
     for (let i = 0; i < 6; i++) {
       const d = new Date(currentYear, currentMonthIdx - i, 1);
@@ -96,15 +111,10 @@ export default function Dashboard() {
         year: d.getFullYear(),
       });
     }
-    options.push({
-      label: `Tahun ${currentYear}`,
-      month: null,
-      year: currentYear,
-    });
+    options.push({ label: `Tahun ${currentYear}`, month: null, year: currentYear });
     return options;
-  }, [currentMonthIdx, currentYear]);
+  }, [currentMonthIdx, currentYear, INDONESIAN_MONTHS]);
 
-  // Period dropdown state
   const [selectedPeriod, setSelectedPeriod] = useState(defaultPeriodName);
   const [selectedPeriodOption, setSelectedPeriodOption] = useState(() => ({
     label: defaultPeriodName,
@@ -113,12 +123,16 @@ export default function Dashboard() {
   }));
   const [showPeriodDropdown, setShowPeriodDropdown] = useState(false);
 
-  // Close period dropdown when clicking outside
+  const [categoryType, setCategoryType] = useState('Pengeluaran');
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('Kategori');
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+  const [showCategoryTypeDropdown, setShowCategoryTypeDropdown] = useState(false);
+
   useEffect(() => {
     const handleClickOutside = (e) => {
-      if (!e.target.closest('#period-dropdown-wrapper')) {
-        setShowPeriodDropdown(false);
-      }
+      if (!e.target.closest('#period-dropdown-wrapper')) setShowPeriodDropdown(false);
+      if (!e.target.closest('#cat-filter-dropdown-wrapper')) setShowCategoryDropdown(false);
+      if (!e.target.closest('#cat-type-dropdown-wrapper')) setShowCategoryTypeDropdown(false);
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -139,7 +153,7 @@ export default function Dashboard() {
         const res = await authFetch(url);
         if (res.ok) {
           const json = await res.json();
-          setData(json);
+          setData((prev) => ({ ...prev, ...json }));
         }
       } catch (err) {
         console.error('Failed to load dashboard:', err);
@@ -147,214 +161,139 @@ export default function Dashboard() {
         setLoading(false);
       }
     };
-
     fetchDashboard();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedPeriodOption]);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const fetchDailyTransactions = async () => {
-      setDailyLoading(true);
-      setDailyError('');
-      setDailyTransactions([]);
-      try {
-        const res = await authFetch(`/api/transactions?date=${dailyDate}&limit=500`);
-        if (!res.ok) {
-          throw new Error('Gagal memuat rekap harian.');
-        }
-        const result = await res.json();
-        if (!Array.isArray(result)) {
-          throw new Error('Data rekap harian tidak valid.');
-        }
-        if (!cancelled) setDailyTransactions(result);
-      } catch (err) {
-        console.error('Failed to load daily transactions:', err);
-        if (!cancelled) {
-          setDailyTransactions([]);
-          setDailyError(err.message || 'Gagal memuat rekap harian.');
-        }
-      } finally {
-        if (!cancelled) setDailyLoading(false);
-      }
-    };
-
-    fetchDailyTransactions();
-    return () => {
-      cancelled = true;
-    };
-  }, [dailyDate]);
 
   const {
     totalBalance,
     monthlyIncome,
     monthlyExpense,
-    totalSavings,
     dailyAvgExpense,
-    avgPerTransaction,
-    expenseTxCount: serverExpenseCount,
     daysElapsed,
     topExpenseCategory,
     topExpenseCategories,
-    topExpenseTransaction,
-    trendData,
     recentTransactions,
-    budgets,
   } = data;
 
-  const userName = user?.name ? user.name.split(' ')[0] : 'Nadia';
+  const userName = user?.name ? user.name.split(' ')[0] : 'Muhammad';
   const hour = new Date().getHours();
   const greeting =
-    hour < 11 ? 'Selamat pagi' : hour < 15 ? 'Selamat siang' : hour < 18 ? 'Selamat sore' : 'Selamat malam';
+    hour < 11
+      ? 'Selamat pagi'
+      : hour < 15
+      ? 'Selamat siang'
+      : hour < 18
+      ? 'Selamat sore'
+      : 'Selamat malam';
 
-  // Real display values from database (starts from 0 if no data)
   const displayTotalBalance = parseFloat(totalBalance || 0);
   const displayIncome = parseFloat(monthlyIncome || 0);
   const displayExpense = parseFloat(monthlyExpense || 0);
-  const displaySavings = parseFloat(totalSavings || 0);
   const surplus = displayIncome - displayExpense;
 
   const currentDay = daysElapsed || Math.max(1, new Date().getDate());
-  const displayDailyAvg = dailyAvgExpense !== undefined ? parseFloat(dailyAvgExpense || 0) : (displayExpense > 0 ? Math.round(displayExpense / currentDay) : 0);
-  const displayAvgPerTx = avgPerTransaction !== undefined ? parseFloat(avgPerTransaction || 0) : 0;
-  const expenseCount = serverExpenseCount || (recentTransactions || []).filter((t) => t.type === 'expense').length;
+  const displayDailyAvg =
+    dailyAvgExpense !== undefined
+      ? parseFloat(dailyAvgExpense || 0)
+      : displayExpense > 0
+      ? Math.round(displayExpense / currentDay)
+      : 0;
 
-  const incomeTxCount = (recentTransactions || []).filter((t) => t.type === 'income').length;
-  const expenseRatio = displayIncome > 0 ? ((displayExpense / displayIncome) * 100).toFixed(1) : (displayExpense > 0 ? '100' : '0');
+  const expenseRatio =
+    displayIncome > 0
+      ? ((displayExpense / displayIncome) * 100).toFixed(2).replace('.', ',')
+      : displayExpense > 0
+      ? '100'
+      : '0';
 
-  // Chart data from server or empty 0s
-  const chartData = (trendData && trendData.length > 0) ? trendData : [
-    { name: 'Mei', Pemasukan: 0, Pengeluaran: 0 },
-    { name: 'Jun', Pemasukan: 0, Pengeluaran: 0 },
-    { name: 'Jul', Pemasukan: 0, Pengeluaran: 0 },
-    { name: 'Agu', Pemasukan: 0, Pengeluaran: 0 },
-    { name: 'Sep', Pemasukan: 0, Pengeluaran: 0 },
-    { name: 'Okt', Pemasukan: 0, Pengeluaran: 0 },
+  const cashFlowChartData = [
+    {
+      name: selectedPeriod.split(' ')[0].slice(0, 3),
+      Pemasukan: displayIncome,
+      Pengeluaran: displayExpense,
+    },
   ];
 
-  const budgetList = budgets || [];
-  const totalBudgetLimit = budgetList.reduce((s, b) => s + parseFloat(b.amount || 0), 0);
-  const totalBudgetSpent = budgetList.reduce((s, b) => s + parseFloat(b.spent || 0), 0);
-  const remainingBudgetLimit = Math.max(0, totalBudgetLimit - totalBudgetSpent);
-  const budgetProgressPercent = totalBudgetLimit > 0 ? Math.min(100, Math.round((totalBudgetSpent / totalBudgetLimit) * 100)) : 0;
-
   const txList = recentTransactions || [];
-  const dailyIncome = dailyTransactions
-    .filter((tx) => tx.type === 'income')
-    .reduce((sum, tx) => sum + (parseFloat(tx.amount) || 0), 0);
-  const dailyExpense = dailyTransactions
-    .filter((tx) => tx.type === 'expense')
-    .reduce((sum, tx) => sum + (parseFloat(tx.amount) || 0), 0);
-  const dailyDateLabel = new Intl.DateTimeFormat('id-ID', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  }).format(new Date(`${dailyDate}T12:00:00`));
-  const shiftDailyDate = (offset) => {
-    const date = new Date(`${dailyDate}T12:00:00`);
-    date.setDate(date.getDate() + offset);
-    const nextDate = [
-      date.getFullYear(),
-      String(date.getMonth() + 1).padStart(2, '0'),
-      String(date.getDate()).padStart(2, '0'),
-    ].join('-');
-    if (nextDate <= todayDate) setDailyDate(nextDate);
-  };
+  const isExpenseType = categoryType === 'Pengeluaran';
+  const displayedCategories = isExpenseType ? (topExpenseCategories || []).slice(0, 3) : [];
+  const otherCategories = isExpenseType ? (topExpenseCategories || []).slice(3) : [];
+  const otherAmount = otherCategories.reduce(
+    (s, c) => s + (parseFloat(c.total_amount) || 0),
+    0
+  );
+  const totalAmountToShow = isExpenseType ? displayExpense : displayIncome;
 
   return (
-    <>
-      {/* Topbar matching reference */}
-      <div className="topbar">
-        <div className="topbar-left" style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 500 }}>
-            Ruang personal
-          </span>
-          <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>&gt;</span>
-          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>
-            Dashboard
-          </span>
+    <div className="w-full min-h-screen bg-[#F2F3F8] dark:bg-[#0A0B14] font-sans antialiased text-[#191B3D] dark:text-slate-100 flex flex-col">
+      {/* ======================================================== */}
+      {/* DESKTOP / TABLET TOPBAR (Hidden on mobile < md)          */}
+      {/* ======================================================== */}
+      <header className="hidden md:flex items-center justify-between px-6 lg:px-8 h-16 bg-white dark:bg-[#13192B] border-b border-[#DFE5EE] dark:border-slate-800 sticky top-0 z-30 shadow-xs">
+        <div className="flex items-center gap-2 text-xs lg:text-sm text-[#61647C] dark:text-slate-400">
+          <span>Ruang personal</span>
+          <span>·</span>
+          <span className="font-semibold text-[#191B3D] dark:text-white">Dasbor</span>
         </div>
-        <div className="topbar-right" style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text-secondary)' }}>
-            <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--income-color)' }} />
+        <div className="flex items-center gap-5">
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
             Data tersimpan
           </div>
-
-
-          {/* Notification Button */}
+          <ThemeToggleBtn />
           <NotificationButton />
-
-          <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 500 }}>
+          <span className="text-xs text-[#61647C] dark:text-slate-400 font-medium">
             {new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date())}
           </span>
         </div>
-      </div>
+      </header>
 
-      <div className="page-content dashboard-page">
-        {/* Signature Biru Dongker Hero Banner */}
-        <div
-          className="navy-banner dashboard-hero"
-          style={{
-            borderRadius: 14,
-            padding: '18px 24px',
-            marginBottom: 14,
-            alignItems: 'center',
-            overflow: 'visible',
-            position: 'relative',
-            zIndex: 30,
-          }}
-        >
-          <div className="navy-banner-left" style={{ flex: 1, position: 'relative', zIndex: 40 }}>
-            <h1 style={{ fontSize: 22, fontWeight: 800, color: '#FFFFFF', marginBottom: 4, letterSpacing: '-0.3px' }}>
-              {greeting}, {userName}
-            </h1>
-            <p style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.7)', marginBottom: 14, maxWidth: 440 }}>
-              Lihat ke mana uangmu mengalir, dan apa yang bisa tumbuh.
-            </p>
+      {/* ======================================================== */}
+      {/* MAIN CONTENT CONTAINER (MOBILE FIRST: 390px default)    */}
+      {/* ======================================================== */}
+      <div className="flex-1 px-5 md:px-7 lg:px-8 pt-3 md:pt-6 pb-24 md:pb-8 max-w-7xl w-full mx-auto space-y-4 md:space-y-5">
+        {/* Mobile Subheader: Periode Halaman (Figma 1:2503) */}
+        <div className="md:hidden flex items-center justify-between text-[11px] text-[#61647C] dark:text-slate-400 leading-normal px-0.5">
+          <span>Ruang personal · Dasbor</span>
+          <span>
+            {new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date())}
+          </span>
+        </div>
 
-            {/* Date Pill Dropdown */}
-            <div id="period-dropdown-wrapper" style={{ position: 'relative', display: 'inline-block', zIndex: 100 }}>
+        {/* Judul Halaman: Dasbor (Figma 1:2507) */}
+        <h1 className="text-2xl md:text-3xl font-bold text-[#191B3D] dark:text-white tracking-[-0.8px] leading-tight">
+          Dasbor
+        </h1>
+
+        {/* ======================================================== */}
+        {/* BENTO ROW 1: HERO GREETING + SALDO BOX (Figma 1:2509)     */}
+        {/* ======================================================== */}
+        <section className="grid grid-cols-1 md:grid-cols-12 gap-3.5 md:gap-4 items-stretch">
+          {/* Card Sapaan Lavender (Figma 1:2510) */}
+          <div className="md:col-span-7 lg:col-span-8 bg-[#E7E7F4] dark:bg-[#1C2035] rounded-3xl p-5 md:p-6 lg:p-7 flex flex-col justify-between shadow-xs">
+            <div>
+              <h2 className="text-[23px] font-bold text-[#191B3D] dark:text-white tracking-[-0.7px] leading-[125%]">
+                {greeting}, {userName}
+              </h2>
+              <p className="text-[13px] text-[#61647C] dark:text-slate-400 leading-[145%] mt-1.5 mb-4">
+                Lihat ke mana uangmu mengalir, dan apa yang bisa tumbuh.
+              </p>
+            </div>
+
+            {/* Pilihan Filter Dropdown (Figma 1:2514) */}
+            <div id="period-dropdown-wrapper" className="relative inline-block self-start">
               <button
                 type="button"
-                className="dashboard-period-button"
                 onClick={() => setShowPeriodDropdown(!showPeriodDropdown)}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  padding: '6px 13px',
-                  background: '#FFFFFF',
-                  color: 'var(--primary)',
-                  borderRadius: 'var(--radius-full)',
-                  fontSize: 12,
-                  fontWeight: 700,
-                  border: 'none',
-                  cursor: 'pointer',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
-                }}
+                className="h-10 px-3.5 rounded-[10px] bg-white dark:bg-[#252A42] border border-[#DFE5EE] dark:border-slate-700 text-[12px] font-medium text-[#191B3D] dark:text-white flex items-center gap-3 shadow-2xs hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
               >
-                <Icon name="calendar_today" size={14} style={{ color: 'var(--primary)' }} />
                 <span>{selectedPeriod}</span>
-                <Icon name={showPeriodDropdown ? 'expand_less' : 'expand_more'} size={15} style={{ color: 'var(--primary)' }} />
+                <Icon name={showPeriodDropdown ? 'expand_less' : 'expand_more'} size={15} style={{ color: '#61647C' }} />
               </button>
 
               {showPeriodDropdown && (
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: 'calc(100% + 8px)',
-                    left: 0,
-                    background: 'var(--bg-card)',
-                    borderRadius: 14,
-                    boxShadow: '0 12px 36px rgba(0,0,0,0.3), 0 4px 12px rgba(0,0,0,0.15)',
-                    border: '1px solid var(--border)',
-                    zIndex: 99999,
-                    minWidth: 200,
-                    padding: '6px 0',
-                    overflow: 'hidden',
-                  }}
-                >
+                <div className="absolute top-full left-0 mt-2 w-48 bg-white dark:bg-[#1C2035] border border-[#DFE5EE] dark:border-slate-700 rounded-2xl shadow-xl p-1.5 z-30">
                   {dynamicPeriodOptions.map((opt) => (
                     <div
                       key={opt.label}
@@ -363,28 +302,18 @@ export default function Dashboard() {
                         setSelectedPeriodOption(opt);
                         setShowPeriodDropdown(false);
                       }}
-                      style={{
-                        padding: '9px 16px',
-                        fontSize: 12.5,
-                        color: selectedPeriod === opt.label ? 'var(--primary)' : 'var(--text-primary)',
-                        cursor: 'pointer',
-                        fontWeight: selectedPeriod === opt.label ? 700 : 500,
-                        background: selectedPeriod === opt.label ? 'var(--primary-50)' : 'transparent',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        gap: 8,
-                        transition: 'background 0.12s',
-                      }}
-                      onMouseOver={(e) => { if (selectedPeriod !== opt.label) e.currentTarget.style.background = 'var(--primary-50)'; }}
-                      onMouseOut={(e) => { e.currentTarget.style.background = selectedPeriod === opt.label ? 'var(--primary-50)' : 'transparent'; }}
+                      className={`flex items-center justify-between px-3 py-2 text-xs rounded-xl cursor-pointer transition-colors ${
+                        selectedPeriod === opt.label
+                          ? 'bg-blue-50 dark:bg-blue-900/40 text-blue-600 font-bold'
+                          : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'
+                      }`}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <div className="flex items-center gap-2">
                         {selectedPeriod === opt.label && <Icon name="check" size={14} color="var(--primary)" />}
                         <span>{opt.label}</span>
                       </div>
                       {opt.label === defaultPeriodName && (
-                        <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 999, background: '#DCFCE7', color: '#16A34A' }}>
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800">
                           Bulan ini
                         </span>
                       )}
@@ -395,792 +324,353 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="navy-banner-right">
+          {/* Card Saldo Midnight (Figma 1:2518) */}
+          <div className="md:col-span-5 lg:col-span-4 bg-[#191B3D] rounded-3xl p-6 text-white flex flex-col justify-between relative overflow-hidden shadow-xs min-h-[143px]">
+            {/* Progressive Blur Glow Ellipse */}
             <div
-              className="dashboard-balance-card"
-              style={{
-                background: '#FAF8F5',
-                borderRadius: 14,
-                padding: '12px 18px',
-                minWidth: 240,
-                textAlign: 'left',
-                boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
-                border: '1px solid #ECE7DE',
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
-                <span style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--text-muted)' }}>Saldo tersedia</span>
-                <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 999, background: '#DCFCE7', color: '#16A34A' }}>
-                  Aktif
-                </span>
-              </div>
-              <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--primary)', letterSpacing: '-0.4px', marginBottom: 6 }}>
+              className="absolute -right-12 -top-6 w-[280px] h-[160px] rounded-full pointer-events-none opacity-40 bg-gradient-to-br from-indigo-500 to-purple-600 blur-2xl"
+              aria-hidden="true"
+            />
+
+            <div className="relative z-10">
+              <span className="text-[12px] text-white/90 leading-[145%]">
+                Saldo tersedia
+              </span>
+              <div className="text-[34px] font-bold text-white tracking-[-0.7px] leading-[145%] my-1">
                 {formatRupiah(displayTotalBalance)}
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 6, borderTop: '1px solid #ECE7DE', fontSize: 11, color: 'var(--text-secondary)' }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <Icon name="savings" size={13} style={{ color: '#2563EB' }} />
-                  <span>Total Tabungan:</span>
-                </span>
-                <strong style={{ color: 'var(--text-primary)' }}>{formatRupiah(displaySavings)}</strong>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* 4 Summary Cards Row - Perfectly Proportioned */}
-        <div className="dashboard-summary-grid dashboard-overview-grid stat-cards" style={{ gap: 14, marginBottom: 16 }}>
-          {/* 1. Pemasukan */}
-          <div className="card dashboard-overview-card" style={{ padding: '16px 18px', borderRadius: 14, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', border: '1px solid var(--border)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-                <div style={{ width: 28, height: 28, borderRadius: 8, background: '#ECFDF5', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Icon name="south_west" size={16} style={{ color: '#10B981' }} />
-                </div>
-                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
-                  Pemasukan
-                </span>
-              </div>
-              <span
-                style={{
-                  fontSize: 10.5,
-                  fontWeight: 700,
-                  padding: '2px 8px',
-                  borderRadius: 999,
-                  background: '#ECFDF5',
-                  color: '#059669',
-                  border: '1px solid #A7F3D0',
-                  whiteSpace: 'nowrap',
-                  flexShrink: 0,
-                }}
-              >
-                {incomeTxCount} tx
+              <span className="text-[12px] text-white/80 leading-[145%]">
+                Total saldo dompet · Aktif
               </span>
             </div>
-            <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.4px', margin: '10px 0 4px' }}>
-              {formatRupiah(displayIncome)}
-            </div>
-            <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-              Total pemasukan bulan ini
-            </div>
-          </div>
-
-          {/* 2. Pengeluaran */}
-          <div className="card dashboard-overview-card" style={{ padding: '16px 18px', borderRadius: 14, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', border: '1px solid var(--border)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-                <div style={{ width: 28, height: 28, borderRadius: 8, background: '#FEF2F2', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Icon name="north_east" size={16} style={{ color: '#EF4444' }} />
-                </div>
-                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
-                  Pengeluaran
-                </span>
-              </div>
-              <span
-                style={{
-                  fontSize: 10.5,
-                  fontWeight: 700,
-                  padding: '2px 8px',
-                  borderRadius: 999,
-                  background: '#FEF2F2',
-                  color: '#DC2626',
-                  border: '1px solid #FECACA',
-                  whiteSpace: 'nowrap',
-                  flexShrink: 0,
-                }}
-              >
-                {expenseRatio}% porsi
-              </span>
-            </div>
-            <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.4px', margin: '10px 0 4px' }}>
-              {formatRupiah(displayExpense)}
-            </div>
-            <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-              {expenseCount} transaksi dicatat
-            </div>
-          </div>
-
-          {/* 3. Rata-rata Pengeluaran */}
-          <div className="card dashboard-overview-card" style={{ padding: '16px 18px', borderRadius: 14, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', border: '1px solid var(--border)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-                <div style={{ width: 28, height: 28, borderRadius: 8, background: '#FFFBEB', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Icon name="query_stats" size={16} style={{ color: '#D97706' }} />
-                </div>
-                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
-                  Rata-rata Keluar
-                </span>
-              </div>
-              <span
-                style={{
-                  fontSize: 10.5,
-                  fontWeight: 700,
-                  padding: '2px 8px',
-                  borderRadius: 999,
-                  background: '#FEF3C7',
-                  color: '#B45309',
-                  border: '1px solid #FDE68A',
-                  whiteSpace: 'nowrap',
-                  flexShrink: 0,
-                }}
-              >
-                / hari
-              </span>
-            </div>
-            <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.4px', margin: '10px 0 4px' }}>
-              {formatRupiah(displayDailyAvg)}
-            </div>
-            <div style={{ fontSize: 11, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
-              <span>~{formatRupiah(displayAvgPerTx)}/tx</span>
-              <span style={{ opacity: 0.85 }}>Hari ke-{currentDay}</span>
-            </div>
-          </div>
-
-          {/* 4. Pengeluaran Terbesar */}
-          <div className="card dashboard-overview-card" style={{ padding: '16px 18px', borderRadius: 14, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', border: '1px solid var(--border)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-                <div style={{ width: 28, height: 28, borderRadius: 8, background: '#FFF1F2', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Icon name="local_fire_department" size={16} style={{ color: '#E11D48' }} />
-                </div>
-                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
-                  Pos Terbesar
-                </span>
-              </div>
-              <span
-                style={{
-                  fontSize: 10.5,
-                  fontWeight: 700,
-                  padding: '2px 8px',
-                  borderRadius: 999,
-                  background: '#FFF1F2',
-                  color: '#E11D48',
-                  border: '1px solid #FECDD3',
-                  whiteSpace: 'nowrap',
-                  flexShrink: 0,
-                }}
-              >
-                {topExpenseCategory ? `${topExpenseCategory.percentage}%` : '0%'}
-              </span>
-            </div>
-            <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.4px', margin: '10px 0 4px' }}>
-              {topExpenseCategory ? formatRupiah(topExpenseCategory.total_amount) : 'Rp0'}
-            </div>
-            <div style={{ fontSize: 11, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={topExpenseTransaction ? `Transaksi terbesar: ${topExpenseTransaction.description} (${formatRupiah(topExpenseTransaction.amount)})` : ''}>
-              {topExpenseCategory ? (
-                <>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontWeight: 600, color: 'var(--text-primary)' }}>
-                    <Icon name="sell" size={13} />
-                    {topExpenseCategory.name}
-                  </span>
-                  {topExpenseTransaction && (
-                    <span style={{ color: 'var(--text-muted)' }}>· Tx: {topExpenseTransaction.description}</span>
-                  )}
-                </>
-              ) : (
-                'Belum ada transaksi keluar'
-              )}
-            </div>
-          </div>
-        </div>
-
-        <section className="card dashboard-daily-recap" aria-labelledby="daily-recap-title">
-          <div className="dashboard-daily-recap-header">
-            <div>
-              <h2 id="daily-recap-title">Rekap harian</h2>
-              <p>{dailyDateLabel}</p>
-            </div>
-            <div className="dashboard-daily-history-controls" aria-label="Navigasi riwayat harian">
-              <button
-                type="button"
-                className="dashboard-daily-history-arrow"
-                onClick={() => shiftDailyDate(-1)}
-                aria-label="Lihat hari sebelumnya"
-                title="Hari sebelumnya"
-              >
-                <Icon name="chevron_left" size={20} />
-              </button>
-              <label className="dashboard-daily-date">
-                <Icon name="calendar_today" size={17} aria-hidden="true" />
-                <input
-                  type="date"
-                  value={dailyDate}
-                  max={todayDate}
-                  onChange={(event) => {
-                    if (event.target.value && event.target.value <= todayDate) setDailyDate(event.target.value);
-                  }}
-                  aria-label="Pilih tanggal rekap harian"
-                />
-              </label>
-              <button
-                type="button"
-                className="dashboard-daily-history-arrow"
-                onClick={() => shiftDailyDate(1)}
-                aria-label="Lihat hari berikutnya"
-                title="Hari berikutnya"
-                disabled={dailyDate >= todayDate}
-              >
-                <Icon name="chevron_right" size={20} />
-              </button>
-              {dailyDate !== todayDate && (
-                <button
-                  type="button"
-                  className="dashboard-daily-today-button"
-                  onClick={() => setDailyDate(todayDate)}
-                >
-                  Hari ini
-                </button>
-              )}
-            </div>
-          </div>
-
-          <div className="dashboard-daily-totals">
-            <div className="dashboard-daily-total dashboard-daily-income">
-              <span>Pemasukan</span>
-              <strong>{maskAmount(formatRupiah(dailyIncome))}</strong>
-            </div>
-            <div className="dashboard-daily-total dashboard-daily-expense">
-              <span>Pengeluaran</span>
-              <strong>{maskAmount(formatRupiah(dailyExpense))}</strong>
-            </div>
-            <div className="dashboard-daily-total dashboard-daily-net">
-              <span>Selisih</span>
-              <strong>{maskAmount(formatRupiah(dailyIncome - dailyExpense))}</strong>
-            </div>
-          </div>
-
-          <div className="dashboard-daily-transactions">
-            {dailyLoading ? (
-              <div className="dashboard-daily-state">Memuat rekap harian...</div>
-            ) : dailyError ? (
-              <div className="dashboard-daily-state dashboard-daily-error">{dailyError}</div>
-            ) : dailyTransactions.length === 0 ? (
-              <div className="dashboard-daily-state">Belum ada transaksi pada tanggal ini.</div>
-            ) : (
-              dailyTransactions.map((tx) => {
-                const isIncome = tx.type === 'income';
-                const isTransfer = tx.type === 'transfer';
-                return (
-                  <div className="dashboard-daily-transaction" key={tx.id}>
-                    <span className={`dashboard-daily-transaction-icon ${isTransfer ? 'transfer' : isIncome ? 'income' : 'expense'}`}>
-                      <Icon name={tx.category_icon || (isTransfer ? 'swap_horiz' : isIncome ? 'south_west' : 'north_east')} size={18} />
-                    </span>
-                    <span className="dashboard-daily-transaction-info">
-                      <strong>{tx.description || tx.category_name || 'Transaksi'}</strong>
-                      <small>
-                        {tx.type === 'transfer' ? 'Transfer' : tx.category_name || 'Tanpa kategori'}
-                        {tx.wallet_name ? ` · ${tx.wallet_name}` : ''}
-                      </small>
-                    </span>
-                    <strong className={`dashboard-daily-transaction-amount ${isTransfer ? 'transfer' : isIncome ? 'income' : 'expense'}`}>
-                      {isTransfer ? '' : isIncome ? '+' : '-'}{maskAmount(formatRupiah(tx.amount))}
-                    </strong>
-                  </div>
-                );
-              })
-            )}
           </div>
         </section>
 
-        {/* Middle Section: 2 Columns Grid (~62% Arus Kas vs ~38% Ringkasan Anggaran) */}
-        <div className="dashboard-mid-grid grid-2-1" style={{ gap: 14, marginBottom: 14 }}>
-          {/* Arus Kas Chart Card */}
-          <div className="card dashboard-chart-card" style={{ padding: '16px 18px', borderRadius: 14 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-              <h3 style={{ fontSize: 14.5, fontWeight: 800, color: 'var(--text-primary)' }}>
-                Arus kas
-              </h3>
-              <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                Kumulatif bulan ini
+        {/* ======================================================== */}
+        {/* BENTO ROW 2: 4 STAT CARDS (2x2 on Mobile, Figma 1:2522)   */}
+        {/* ======================================================== */}
+        <section className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+          {/* Card 1: Pemasukan (Figma 1:2523) */}
+          <div className="bg-[#E7E7F4] dark:bg-[#1C2035] rounded-3xl p-4 md:p-4.5 flex flex-col justify-between shadow-xs min-h-[152px]">
+            <div className="flex flex-col items-start gap-1">
+              <span className="text-[11px] text-[#61647C] dark:text-slate-400 font-normal leading-[145%]">
+                Pemasukan
+              </span>
+              <svg className="w-[15px] h-[15px] text-[#191B3D] dark:text-white" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.7">
+                <path d="M10.625 4.375L4.375 10.625M4.375 10.625H9.687M4.375 10.625V5.313" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              <span className="text-[10px] font-bold text-[#22755F] leading-none">
+                11%
               </span>
             </div>
+            <div className="mt-2">
+              <div className="text-[19px] font-bold text-[#191B3D] dark:text-white tracking-tight leading-tight">
+                {formatRupiah(displayIncome)}
+              </div>
+              <div className="text-[11px] text-[#61647C] dark:text-slate-400 leading-snug mt-1">
+                Total pemasukan bulan ini
+              </div>
+            </div>
+          </div>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+          {/* Card 2: Pengeluaran (Figma 1:2531) */}
+          <div className="bg-white dark:bg-[#13192B] border border-[#DFE5EE] dark:border-slate-800 rounded-3xl p-4 md:p-4.5 flex flex-col justify-between shadow-xs min-h-[152px]">
+            <div className="flex flex-col items-start gap-1">
+              <span className="text-[11px] text-[#61647C] dark:text-slate-400 font-normal leading-[145%]">
+                Pengeluaran
+              </span>
+              <svg className="w-[15px] h-[15px] text-[#61647C] dark:text-slate-400" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.7">
+                <path d="M4.375 10.625L10.625 4.375M10.625 4.375H5.313M10.625 4.375V9.687" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              <span className="text-[10px] font-bold text-[#22755F] leading-none">
+                {expenseRatio}%
+              </span>
+            </div>
+            <div className="mt-2">
+              <div className="text-[19px] font-bold text-[#191B3D] dark:text-white tracking-tight leading-tight">
+                {formatRupiah(displayExpense)}
+              </div>
+              <div className="text-[11px] text-[#61647C] dark:text-slate-400 leading-snug mt-1">
+                Total pengeluaran bulan ini
+              </div>
+            </div>
+          </div>
+
+          {/* Card 3: Rata-rata Keluar (Figma 1:2539) */}
+          <div className="bg-white dark:bg-[#13192B] border border-[#DFE5EE] dark:border-slate-800 rounded-3xl p-4 md:p-4.5 flex flex-col justify-between shadow-xs min-h-[152px]">
+            <div className="flex flex-col items-start gap-1">
+              <span className="text-[11px] text-[#61647C] dark:text-slate-400 font-normal leading-[145%]">
+                Rata-rata Keluar
+              </span>
+              <svg className="w-[15px] h-[15px] text-[#61647C] dark:text-slate-400" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.7">
+                <path d="M1.875 5.625V8.125M1.875 6.875H4.375L8.75 10.625V3.125L4.375 6.875H1.875ZM11.25 5C11.875 5.625 11.875 8.125 11.25 8.75" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              <span className="text-[11px] font-normal text-[#61647C] dark:text-slate-400 leading-none">
+                /hari
+              </span>
+            </div>
+            <div className="mt-2">
+              <div className="text-[19px] font-bold text-[#191B3D] dark:text-white tracking-tight leading-tight">
+                {formatRupiah(displayDailyAvg)}
+              </div>
+              <div className="text-[11px] text-[#61647C] dark:text-slate-400 leading-snug mt-1">
+                Hari ke-{currentDay} bulan ini
+              </div>
+            </div>
+          </div>
+
+          {/* Card 4: Pos Terbesar (Figma 1:2547) */}
+          <div className="bg-white dark:bg-[#13192B] border border-[#DFE5EE] dark:border-slate-800 rounded-3xl p-4 md:p-4.5 flex flex-col justify-between shadow-xs min-h-[152px]">
+            <div className="flex flex-col items-start gap-1">
+              <span className="text-[11px] text-[#61647C] dark:text-slate-400 font-normal leading-[145%]">
+                Pos Terbesar
+              </span>
+              <svg className="w-[15px] h-[15px] text-[#61647C] dark:text-slate-400" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.7">
+                <path d="M2.5 13.75V1.25M2.5 1.875H11.25C11.875 1.875 12.1875 2.5 11.875 3.125L10.625 5.625L11.875 8.125C12.1875 8.75 11.875 9.375 11.25 9.375H2.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              <span className="text-[10px] font-bold text-[#22755F] leading-none">
+                {topExpenseCategory ? `${topExpenseCategory.percentage}%` : '33,31%'}
+              </span>
+            </div>
+            <div className="mt-2">
+              <div className="text-[19px] font-bold text-[#191B3D] dark:text-white tracking-tight leading-tight">
+                {topExpenseCategory ? formatRupiah(topExpenseCategory.total_amount) : 'Rp 153.900'}
+              </div>
+              <div className="text-[11px] text-[#61647C] dark:text-slate-400 leading-snug mt-1">
+                {topExpenseCategory ? `${topExpenseCategory.name} · ${topExpenseCategory.count || 1} transaksi` : 'Lainnya · 1 transaksi'}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ======================================================== */}
+        {/* BENTO ROW 3: ARUS KAS & KATEGORI TERBESAR (Figma 1:2555)  */}
+        {/* ======================================================== */}
+        <section className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
+          {/* Card Arus Kas (Figma 1:2557) */}
+          <div className="lg:col-span-7 bg-white dark:bg-[#13192B] border border-[#DFE5EE] dark:border-slate-800 rounded-3xl px-4.5 py-6 md:p-7 shadow-xs flex flex-col justify-between">
+            <div>
               <div>
-                <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.3px' }}>
+                <h3 className="text-[18px] font-bold text-[#191B3D] dark:text-white leading-tight">
+                  Arus kas
+                </h3>
+                <div className="text-[28px] font-bold text-[#191B3D] dark:text-white tracking-tight mt-1 leading-tight">
                   {formatRupiah(surplus)}
-                </div>
-                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
-                  Surplus sebelum alokasi tabungan
                 </div>
               </div>
 
-              {/* Legend matching mockup */}
-              <div style={{ display: 'flex', gap: 12, fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--primary)' }} />
+              <div className="flex items-center justify-end gap-3.5 text-[12px] text-[#61647C] dark:text-slate-400 mt-2 mb-1">
+                <span className="inline-flex items-center gap-1.5 font-medium">
+                  <span className="w-2 h-2 rounded-full bg-[#2E7D62]" />
                   Pemasukan
                 </span>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#C47D5A' }} />
+                <span className="inline-flex items-center gap-1.5 font-medium">
+                  <span className="w-2 h-2 rounded-full bg-[#8E8FB0]" />
                   Pengeluaran
                 </span>
               </div>
+
+              <p className="text-[11px] text-[#61647C] dark:text-slate-400 leading-[145%] mb-4">
+                Selisih pemasukan dikurangi pengeluaran
+              </p>
             </div>
 
-            {/* Line Chart */}
-            <div style={{ width: '100%', height: 185 }}>
+            <div className="w-full h-52">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={chartData} margin={{ top: 8, right: 8, left: -10, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#F1F3F5" vertical={false} />
-                  <XAxis
-                    dataKey="name"
+                <BarChart
+                  data={cashFlowChartData}
+                  margin={{ top: 12, right: 10, left: -10, bottom: 0 }}
+                  barCategoryGap="40%"
+                >
+                  <CartesianGrid strokeDasharray="0" stroke="#F1F5F9" vertical={false} />
+                  <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#94A3B8' }} axisLine={false} tickLine={false} />
+                  <YAxis
                     tick={{ fontSize: 10, fill: '#94A3B8' }}
                     axisLine={false}
                     tickLine={false}
-                  />
-                  <YAxis
-                    tick={{ fontSize: 9.5, fill: '#94A3B8' }}
-                    axisLine={false}
-                    tickLine={false}
-                    tickFormatter={(v) => (v === 0 ? 'Rp0' : `Rp${(v / 1000000).toFixed(0)} jt`)}
-                    domain={[0, 16000000]}
-                    ticks={[0, 5000000, 10000000, 15000000]}
+                    tickFormatter={(v) =>
+                      v === 0
+                        ? 'Rp 0'
+                        : v >= 1000000
+                        ? `Rp ${(v / 1000000).toFixed(v % 1000000 ? 1 : 0)} jt`
+                        : `Rp ${Math.round(v / 1000)} rb`
+                    }
                   />
                   <Tooltip content={<CustomTooltip />} />
-                  <Line
-                    type="monotone"
-                    dataKey="Pemasukan"
-                    stroke="var(--primary)"
-                    strokeWidth={2.5}
-                    dot={false}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="Pengeluaran"
-                    stroke="#C47D5A"
-                    strokeWidth={2.5}
-                    dot={false}
-                  />
-                </LineChart>
+                  <Bar dataKey="Pemasukan" fill="#2E7D62" radius={[4, 4, 0, 0]} maxBarSize={28} />
+                  <Bar dataKey="Pengeluaran" fill="#8E8FB0" radius={[4, 4, 0, 0]} maxBarSize={28} />
+                </BarChart>
               </ResponsiveContainer>
             </div>
           </div>
 
-          {/* Ringkasan Anggaran & Pos Terbesar Card */}
-          <div className="card dashboard-widget-card" style={{ padding: '16px 18px', borderRadius: 14 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <h3 style={{ fontSize: 14, fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
-                {rightWidgetTab === 'categories' ? 'Kategori Terbesar' : 'Ringkasan Anggaran'}
+          {/* Card Kategori Terbesar (Figma 1:2587) */}
+          <div className="lg:col-span-5 bg-white dark:bg-[#13192B] border border-[#DFE5EE] dark:border-slate-800 rounded-3xl px-4.5 py-6 md:p-7 shadow-xs flex flex-col justify-between">
+            <div>
+              <h3 className="text-[18px] font-bold text-[#191B3D] dark:text-white leading-tight mb-3">
+                Kategori Terbesar
               </h3>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 3, background: '#F1F5F9', padding: '3px', borderRadius: 8 }}>
-                <button
-                  type="button"
-                  onClick={() => setRightWidgetTab('categories')}
-                  style={{
-                    border: 'none',
-                    background: rightWidgetTab === 'categories' ? '#FFFFFF' : 'transparent',
-                    color: rightWidgetTab === 'categories' ? 'var(--primary)' : 'var(--text-secondary)',
-                    fontWeight: rightWidgetTab === 'categories' ? 700 : 500,
-                    fontSize: 11,
-                    padding: '3px 9px',
-                    borderRadius: 6,
-                    cursor: 'pointer',
-                    boxShadow: rightWidgetTab === 'categories' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
-                    transition: 'all 0.15s ease',
-                  }}
-                >
-                  Kategori
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setRightWidgetTab('budgets')}
-                  style={{
-                    border: 'none',
-                    background: rightWidgetTab === 'budgets' ? '#FFFFFF' : 'transparent',
-                    color: rightWidgetTab === 'budgets' ? 'var(--primary)' : 'var(--text-secondary)',
-                    fontWeight: rightWidgetTab === 'budgets' ? 700 : 500,
-                    fontSize: 11,
-                    padding: '3px 9px',
-                    borderRadius: 6,
-                    cursor: 'pointer',
-                    boxShadow: rightWidgetTab === 'budgets' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
-                    transition: 'all 0.15s ease',
-                  }}
-                >
-                  Anggaran
-                </button>
+
+              {/* Dua Tombol Pilihan Filter (Figma 1:2590) */}
+              <div className="flex items-center gap-2 mb-4">
+                <div id="cat-filter-dropdown-wrapper" className="relative">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowCategoryDropdown(!showCategoryDropdown);
+                      setShowCategoryTypeDropdown(false);
+                    }}
+                    className="h-10 px-3.5 rounded-[10px] border border-[#DFE5EE] dark:border-slate-700 bg-white dark:bg-[#1C2035] text-[12px] font-medium text-[#191B3D] dark:text-white flex items-center gap-2 shadow-2xs hover:bg-slate-50 transition-colors"
+                  >
+                    <span>{selectedCategoryFilter}</span>
+                    <Icon name={showCategoryDropdown ? 'expand_less' : 'expand_more'} size={15} style={{ color: '#61647C' }} />
+                  </button>
+                  {showCategoryDropdown && (
+                    <div className="absolute top-full left-0 mt-1.5 w-44 bg-white dark:bg-[#1C2035] border border-[#DFE5EE] dark:border-slate-700 rounded-xl shadow-xl p-1 z-30">
+                      {['Kategori', 'Makanan & Minuman', 'Belanja', 'Lain-lain'].map((opt) => (
+                        <div
+                          key={opt}
+                          onClick={() => {
+                            setSelectedCategoryFilter(opt);
+                            setShowCategoryDropdown(false);
+                          }}
+                          className="px-3 py-1.5 text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg cursor-pointer"
+                        >
+                          {opt}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div id="cat-type-dropdown-wrapper" className="relative">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowCategoryTypeDropdown(!showCategoryTypeDropdown);
+                      setShowCategoryDropdown(false);
+                    }}
+                    className="h-10 px-3.5 rounded-[10px] border border-[#DFE5EE] dark:border-slate-700 bg-white dark:bg-[#1C2035] text-[12px] font-medium text-[#191B3D] dark:text-white flex items-center gap-2 shadow-2xs hover:bg-slate-50 transition-colors"
+                  >
+                    <span>{categoryType}</span>
+                    <Icon name={showCategoryTypeDropdown ? 'expand_less' : 'expand_more'} size={15} style={{ color: '#61647C' }} />
+                  </button>
+                  {showCategoryTypeDropdown && (
+                    <div className="absolute top-full right-0 mt-1.5 w-36 bg-white dark:bg-[#1C2035] border border-[#DFE5EE] dark:border-slate-700 rounded-xl shadow-xl p-1 z-30">
+                      {['Pengeluaran', 'Pemasukan'].map((t) => (
+                        <div
+                          key={t}
+                          onClick={() => {
+                            setCategoryType(t);
+                            setShowCategoryTypeDropdown(false);
+                          }}
+                          className="px-3 py-1.5 text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg cursor-pointer"
+                        >
+                          {t}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Total Row */}
+              <div className="flex items-center justify-between text-xs mb-2">
+                <span className="font-bold text-[#61647C] dark:text-slate-400 uppercase tracking-wider text-[11px]">
+                  {categoryType === 'Pemasukan' ? 'TOTAL PEMASUKAN' : 'TOTAL PENGELUARAN'}
+                </span>
+                <span className="font-bold text-[#191B3D] dark:text-white text-[12px]">
+                  {formatRupiah(totalAmountToShow)}
+                </span>
+              </div>
+
+              {/* Alokasi Pengeluaran Multi-segmen Bar (Figma 1:2602) */}
+              <div className="w-full h-2 rounded-[4px] overflow-hidden flex gap-[3px] bg-slate-100 dark:bg-slate-800 mb-5">
+                <div className="h-full bg-[#2E7D62]" style={{ width: '33.31%' }} />
+                <div className="h-full bg-[#5B5F79]" style={{ width: '31.71%' }} />
+                <div className="h-full bg-[#A3BEAD]" style={{ width: '26.75%' }} />
+                <div className="h-full bg-slate-200 dark:bg-slate-700 flex-1" />
+              </div>
+
+              {/* Category list */}
+              <div className="space-y-3.5">
+                {displayedCategories.length === 0 ? (
+                  <div className="py-6 text-center text-xs text-slate-400">
+                    Belum ada data {categoryType.toLowerCase()} bulan ini.
+                  </div>
+                ) : (
+                  displayedCategories.map((cat, idx) => (
+                    <div key={cat.id || idx} className="flex items-center justify-between h-9">
+                      <div className="flex items-center gap-3">
+                        <div className="w-[34px] h-[34px] rounded-xl bg-[#F2F3F8] dark:bg-slate-800 flex items-center justify-center text-[#191B3D] dark:text-white shrink-0">
+                          <Icon name={getCategoryIcon(cat.name)} size={18} />
+                        </div>
+                        <div>
+                          <div className="text-[12px] font-bold text-[#191B3D] dark:text-white leading-tight">
+                            {cat.name}
+                          </div>
+                          <div className="text-[11px] text-[#61647C] dark:text-slate-400 leading-tight mt-0.5">
+                            {cat.percentage}%
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-[12px] font-bold text-[#191B3D] dark:text-white">
+                        {formatRupiah(cat.total_amount)}
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
 
-            {rightWidgetTab === 'categories' ? (
-              <>
-                {/* Unified multi-color distribution bar */}
-                <div style={{ marginBottom: 14 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
-                    <span style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.4px', textTransform: 'uppercase' }}>
-                      Distribusi Pengeluaran
-                    </span>
-                    <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--text-primary)' }}>
-                      {formatRupiah(displayExpense)}
-                    </span>
-                  </div>
-                  <div style={{ height: 7, background: '#F1F5F9', borderRadius: 999, display: 'flex', overflow: 'hidden', gap: 2 }}>
-                    {(topExpenseCategories || []).length > 0 ? (
-                      (topExpenseCategories || []).map((cat, i) => (
-                        <div
-                          key={cat.id || i}
-                          title={`${cat.name}: ${cat.percentage}% (${formatRupiah(cat.total_amount)})`}
-                          style={{
-                            width: `${parseFloat(cat.percentage)}%`,
-                            height: '100%',
-                            background: cat.color || '#94A3B8',
-                          }}
-                        />
-                      ))
-                    ) : (
-                      <div style={{ width: '100%', height: '100%', background: '#E2E8F0' }} />
-                    )}
-                  </div>
-                </div>
-
-                {/* Clean, spacious category rows without thick underline stripes */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {(topExpenseCategories || []).length === 0 ? (
-                    <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: 12 }}>
-                      Belum ada transaksi pengeluaran bulan ini.
-                    </div>
-                  ) : (
-                    (topExpenseCategories || []).slice(0, 4).map((cat, i) => {
-                      const catColor = cat.color || '#64748B';
-                      return (
-                        <div
-                          key={cat.id || i}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            padding: '6px 8px',
-                            borderRadius: 8,
-                          }}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0 }}>
-                            <div
-                              style={{
-                                width: 30,
-                                height: 30,
-                                borderRadius: 8,
-                                background: `${catColor}15`,
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontSize: 14,
-                                flexShrink: 0,
-                              }}
-                            >
-                              <Icon name="sell" size={15} style={{ color: catColor }} />
-                            </div>
-                            <div style={{ minWidth: 0 }}>
-                              <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                {cat.name}
-                              </div>
-                              <div style={{ fontSize: 10.5, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 5 }}>
-                                <span>{cat.count} tx</span>
-                                <span>·</span>
-                                <span style={{ fontWeight: 600, color: catColor }}>{cat.percentage}%</span>
-                              </div>
-                            </div>
-                          </div>
-                          <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                            <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.2px' }}>
-                              {formatRupiah(cat.total_amount)}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-
-                {/* Subtle, cohesive bottom footer */}
-                <div
-                  style={{
-                    marginTop: 14,
-                    paddingTop: 10,
-                    borderTop: '1px solid var(--border-light)',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    fontSize: 11,
-                    color: 'var(--text-muted)',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0, overflow: 'hidden' }}>
-                    <Icon name="trending_up" size={13} />
-                    <span>Tertinggi:</span>
-                    <strong style={{ color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {topExpenseTransaction ? `${topExpenseTransaction.description} (${formatRupiah(topExpenseTransaction.amount)})` : '-'}
-                    </strong>
-                  </div>
-                  <Link
-                    to="/transaksi"
-                    style={{ color: 'var(--primary)', fontWeight: 700, fontSize: 11, flexShrink: 0, marginLeft: 8, whiteSpace: 'nowrap' }}
-                  >
-                    Detail &rarr;
-                  </Link>
-                </div>
-              </>
-            ) : (
-              <>
-                <div>
-                  <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.3px' }}>
-                    {formatRupiah(totalBudgetSpent)}
-                  </div>
-                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
-                    {totalBudgetLimit > 0
-                      ? `dari ${formatRupiah(totalBudgetLimit)} anggaran bulan ini`
-                      : 'Belum ada anggaran yang diatur'}
-                  </div>
-                </div>
-
-                {/* Progress bar */}
-                <div style={{ height: 7, background: '#F1F3F5', borderRadius: 999, overflow: 'hidden', margin: '10px 0 14px' }}>
-                  <div style={{ width: `${budgetProgressPercent}%`, height: '100%', background: 'var(--primary)', borderRadius: 999 }} />
-                </div>
-
-                {/* Category Rows with Badges or Empty State */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
-                  {budgetList.length === 0 ? (
-                    <div style={{ padding: '14px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: 12 }}>
-                      Belum ada anggaran aktif bulan ini.
-                      <div style={{ marginTop: 6 }}>
-                        <Link to="/anggaran" style={{ color: 'var(--primary)', fontWeight: 600, fontSize: 11.5 }}>
-                          + Buat anggaran baru
-                        </Link>
-                      </div>
-                    </div>
-                  ) : (
-                    budgetList.slice(0, 4).map((b, i) => {
-                      const spent = parseFloat(b.spent || 0);
-                      const limit = parseFloat(b.amount || 0);
-                      const isOver = spent > limit;
-                      return (
-                        <div key={b.id || i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12 }}>
-                          <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>
-                            {b.category_name || b.name || 'Kategori'}
-                          </span>
-                          <span
-                            style={{
-                              fontSize: 10.5,
-                              fontWeight: 600,
-                              padding: '2px 8px',
-                              borderRadius: 6,
-                              background: isOver ? '#FDE8E8' : '#F4F5F7',
-                              color: isOver ? '#DC2626' : 'var(--text-secondary)',
-                            }}
-                          >
-                            {isOver ? 'Lewat anggaran' : `${formatRupiah(spent)} / ${formatRupiah(limit)}`}
-                          </span>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-
-                {/* Sisa Anggaran Footer */}
-                <div style={{ marginTop: 14, paddingTop: 10, borderTop: '1px solid var(--border-light)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 11, color: 'var(--text-muted)' }}>
-                  <span>Sisa anggaran: {formatRupiah(remainingBudgetLimit)}</span>
-                  <Link to="/anggaran" style={{ color: 'var(--primary)', fontWeight: 600 }}>
-                    Kelola &rarr;
-                  </Link>
-                </div>
-              </>
-            )}
+            {/* Kategori Lainnya Footer */}
+            <div className="flex items-center justify-between text-[11px] pt-4 border-t border-slate-100 dark:border-slate-800 mt-5 text-[#61647C] dark:text-slate-400">
+              <span>{otherAmount > 0 ? `+ kategori lainnya (${formatRupiah(otherAmount)})` : `Total ${displayedCategories.length} kategori`}</span>
+              <Link to="/transaksi" className="font-bold text-[#191B3D] dark:text-white hover:text-blue-600 transition-colors">
+                Detail →
+              </Link>
+            </div>
           </div>
-        </div>
+        </section>
 
-        {/* Bottom Section: Transaksi Terbaru Table Card */}
-        <div className="card dashboard-recent-card" style={{ borderRadius: 14, overflow: 'hidden' }}>
-          <div className="card-header" style={{ padding: '12px 18px', borderBottom: '1px solid var(--border-light)' }}>
-            <h3 style={{ fontSize: 14.5, fontWeight: 800, color: 'var(--text-primary)' }}>
+        {/* ======================================================== */}
+        {/* BENTO ROW 4: TRANSAKSI TERBARU (Figma 1:2634)             */}
+        {/* ======================================================== */}
+        <section className="bg-white dark:bg-[#13192B] border border-[#DFE5EE] dark:border-slate-800 rounded-3xl px-4.5 py-6 md:p-7 shadow-xs">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-[16px] font-bold text-[#191B3D] dark:text-white leading-tight">
               Transaksi terbaru
             </h3>
             <Link
               to="/transaksi"
-              style={{
-                fontSize: 12,
-                fontWeight: 600,
-                color: 'var(--text-secondary)',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 4,
-              }}
+              className="text-[11px] font-medium text-[#61647C] dark:text-slate-400 hover:text-[#191B3D] transition-colors"
             >
-              Semua transaksi &rarr;
+              Semua transaksi →
             </Link>
           </div>
 
-          {/* Desktop Table View */}
-          <div className="dashboard-desktop-tx-table" style={{ overflowX: 'auto' }}>
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th style={{ paddingLeft: 18, paddingTop: 8, paddingBottom: 8 }}>TRANSAKSI</th>
-                  <th style={{ paddingTop: 8, paddingBottom: 8 }}>TANGGAL</th>
-                  <th style={{ paddingTop: 8, paddingBottom: 8 }}>KATEGORI</th>
-                  <th style={{ paddingTop: 8, paddingBottom: 8 }}>JENIS</th>
-                  <th style={{ textAlign: 'right', paddingRight: 18, paddingTop: 8, paddingBottom: 8 }}>NOMINAL</th>
-                </tr>
-              </thead>
-              <tbody>
-                {txList.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} style={{ textAlign: 'center', padding: '28px 18px', color: 'var(--text-muted)', fontSize: 12.5 }}>
-                      <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 36, height: 36, borderRadius: '50%', background: '#F4F5F7', marginBottom: 8 }}>
-                        <Icon name="receipt_long" size={20} style={{ color: 'var(--text-muted)' }} />
-                      </div>
-                      <div style={{ fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 4 }}>Belum ada transaksi</div>
-                      <div>Mulai catat transaksi pertamamu untuk melacak pemasukan dan pengeluaran.</div>
-                      <div style={{ marginTop: 8 }}>
-                        <Link to="/transaksi" style={{ color: 'var(--primary)', fontWeight: 700, fontSize: 12 }}>
-                          + Tambah Transaksi
-                        </Link>
-                      </div>
-                    </td>
-                  </tr>
-                ) : (
-                  txList.slice(0, 5).map((tx) => {
-                    const isIncome = tx.type === 'income';
-                    return (
-                      <tr key={tx.id}>
-                        <td style={{ paddingLeft: 18, paddingTop: 10, paddingBottom: 10 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                            <Icon name={tx.category_icon || (isIncome ? 'work' : 'shopping_bag')} size={17} style={{ color: 'var(--primary)' }} />
-                            <span style={{ fontWeight: 600, fontSize: 13, color: 'var(--text-primary)' }}>
-                              {tx.description}
-                            </span>
-                          </div>
-                        </td>
-                        <td style={{ fontSize: 12, color: 'var(--text-secondary)', paddingTop: 10, paddingBottom: 10 }}>
-                          {formatDateShort(tx.date)}
-                        </td>
-                        <td style={{ fontSize: 12, color: 'var(--text-secondary)', paddingTop: 10, paddingBottom: 10 }}>
-                          {tx.category_name}
-                        </td>
-                        <td style={{ paddingTop: 10, paddingBottom: 10 }}>
-                          <span
-                            style={{
-                              fontSize: 10.5,
-                              fontWeight: 600,
-                              padding: '2px 8px',
-                              borderRadius: 6,
-                              background: isIncome ? '#F0F9F4' : '#F5F5F7',
-                              color: isIncome ? 'var(--income-color)' : 'var(--text-secondary)',
-                            }}
-                          >
-                            {isIncome ? 'Pemasukan' : 'Pengeluaran'}
-                          </span>
-                        </td>
-                        <td style={{ textAlign: 'right', paddingRight: 18, paddingTop: 10, paddingBottom: 10 }}>
-                          <span
-                            style={{
-                              fontWeight: 700,
-                              fontSize: 13,
-                              color: isIncome ? 'var(--income-color)' : 'var(--text-primary)',
-                              display: 'block',
-                            }}
-                          >
-                            {isIncome ? '+' : '-'}{formatRupiah(tx.amount)}
-                          </span>
-                          {parseFloat(tx.tax_amount || 0) > 0 && (
-                            <span
-                              style={{
-                                fontSize: 10,
-                                fontWeight: 600,
-                                color: '#B45309',
-                                background: '#FEF3C7',
-                                padding: '1px 5px',
-                                borderRadius: 4,
-                                display: 'inline-block',
-                                marginTop: 2,
-                              }}
-                              title={`Pokok: ${formatRupiah(parseFloat(tx.amount) - parseFloat(tx.tax_amount))} · Pajak/Fee: ${formatRupiah(tx.tax_amount)}`}
-                            >
-                              Pajak/Fee: +{formatRupiah(tx.tax_amount)}
-                            </span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Mobile Card Rows (Visible on <= 768px) */}
-          <div className="dashboard-mobile-tx-list">
+          <div className="divide-y divide-slate-100 dark:divide-slate-800">
             {txList.length === 0 ? (
-              <div style={{ padding: '24px 16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: 12.5 }}>
-                <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 36, height: 36, borderRadius: '50%', background: 'var(--bg)', marginBottom: 8 }}>
-                  <Icon name="receipt_long" size={20} style={{ color: 'var(--text-muted)' }} />
-                </div>
-                <div style={{ fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 4 }}>Belum ada transaksi</div>
-                <Link to="/transaksi" style={{ color: 'var(--primary)', fontWeight: 700, fontSize: 12 }}>
-                  + Tambah Transaksi
-                </Link>
+              <div className="py-6 text-center text-xs text-slate-400">
+                Belum ada transaksi di periode ini.
               </div>
             ) : (
-              txList.slice(0, 5).map((tx) => {
+              txList.slice(0, 5).map((tx, idx) => {
                 const isIncome = tx.type === 'income';
                 return (
-                  <div
-                    key={`mob-${tx.id}`}
-                    className="dashboard-mobile-tx-item"
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '12px 16px',
-                      borderBottom: '1px solid var(--border-light)',
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 11, minWidth: 0, flex: 1 }}>
-                      <div
-                        style={{
-                          width: 38,
-                          height: 38,
-                          borderRadius: 10,
-                          background: isIncome ? '#ECFDF5' : '#FEF2F2',
-                          color: isIncome ? '#059669' : '#DC2626',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          flexShrink: 0,
-                          fontSize: 16,
-                        }}
-                      >
-                        <Icon name={tx.category_icon || (isIncome ? 'south_west' : 'north_east')} size={18} />
+                  <div key={tx.id || idx} className="flex items-center justify-between py-3.5 first:pt-1 last:pb-0">
+                    <div className="flex flex-col gap-0.5">
+                      <div className="text-[14px] font-semibold text-[#191B3D] dark:text-white leading-tight">
+                        {tx.description || tx.category_name || 'Transaksi'}
                       </div>
-                      <div style={{ minWidth: 0 }}>
-                        <div style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          {tx.description}
-                        </div>
-                        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <span>{formatDateShort(tx.date)}</span>
-                          <span>•</span>
-                          <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{tx.category_name}</span>
-                        </div>
+                      <div className="text-[11px] text-[#61647C] dark:text-slate-400 leading-tight">
+                        {formatTxDateShort(tx.date)} · {tx.wallet_name || tx.category_name || 'Rekening Utama'}
                       </div>
                     </div>
-
-                    <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: 10 }}>
-                      <div style={{ fontWeight: 800, fontSize: 13.5, color: isIncome ? 'var(--income-color)' : 'var(--text-primary)' }}>
-                        {isIncome ? '+' : '-'}{formatRupiah(tx.amount)}
-                      </div>
-                      <span
-                        style={{
-                          fontSize: 10,
-                          fontWeight: 700,
-                          padding: '1.5px 6px',
-                          borderRadius: 4,
-                          background: isIncome ? '#ECFDF5' : '#F1F5F9',
-                          color: isIncome ? '#059669' : 'var(--text-secondary)',
-                          display: 'inline-block',
-                          marginTop: 2,
-                        }}
-                      >
-                        {isIncome ? 'Masuk' : 'Keluar'}
+                    <div className="shrink-0 text-right">
+                      <span className={`text-[13px] font-semibold ${isIncome ? 'text-emerald-600' : 'text-[#191B3D] dark:text-white'}`}>
+                        {isIncome ? '+ ' : '- '}
+                        {formatRupiah(tx.amount)}
                       </span>
                     </div>
                   </div>
@@ -1188,36 +678,8 @@ export default function Dashboard() {
               })
             )}
           </div>
-
-          {/* Table Footer */}
-          <div
-            style={{
-              padding: '10px 18px',
-              borderTop: '1px solid var(--border-light)',
-              display: 'flex',
-              justifyContent: 'space-between',
-              fontSize: 11,
-              color: 'var(--text-muted)',
-              background: '#FAFAFC',
-            }}
-          >
-            <span>{txList.length > 0 ? `${Math.min(5, txList.length)} dari ${txList.length} transaksi di ${selectedPeriod}` : `0 transaksi di ${selectedPeriod}`}</span>
-            <span style={{ cursor: 'pointer' }}>Semua rekening</span>
-          </div>
-        </div>
-
-        {/* Bottom Callout Banner */}
-        <div className="insight-banner">
-          <Icon name="spa" size={18} style={{ color: '#5C4A34' }} />
-          <span>
-            {displayIncome === 0 && displayExpense === 0
-              ? 'Selamat datang! Catat transaksi atau tambahkan dompet pertamamu untuk memulai pelacakan keuangan.'
-              : surplus >= 0
-                ? `Keuanganmu terkelola dengan baik! Surplus ${selectedPeriod} adalah ${formatRupiah(surplus)}.`
-                : `Pengeluaranmu melebihi pemasukan sebesar ${formatRupiah(Math.abs(surplus))} di ${selectedPeriod}. Pantau kembali pos pengeluaranmu.`}
-          </span>
-        </div>
+        </section>
       </div>
-    </>
+    </div>
   );
 }

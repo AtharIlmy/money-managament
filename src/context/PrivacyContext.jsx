@@ -1,11 +1,17 @@
+'use client';
 import React, { createContext, useContext, useState } from 'react';
 
 const PrivacyContext = createContext(null);
 
 export function PrivacyProvider({ children }) {
-  const [isHidden, setIsHidden] = useState(
-    () => localStorage.getItem('privacy_mode') === 'true'
-  );
+  const [isHidden, setIsHidden] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    try {
+      return localStorage.getItem('privacy_mode') === 'true';
+    } catch {
+      return false;
+    }
+  });
 
   const toggle = () => {
     setIsHidden((prev) => {

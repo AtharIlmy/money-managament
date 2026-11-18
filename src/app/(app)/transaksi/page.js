@@ -3,9 +3,10 @@ import { useState, useEffect, useCallback } from 'react';
 import { formatRupiah, formatDate } from '@/lib/utils';
 import ThemeToggleBtn from '@/app/components/ThemeToggleBtn';
 import { useTheme } from '@/app/components/ThemeProvider';
+import { useAuth } from '@/context/AuthContext';
 
 export default function TransaksiPage() {
-  const { isDark } = useTheme();
+  const { user, authFetch } = useAuth();
   const [transactions, setTransactions] = useState([]);
   const [categories, setCategories] = useState([]);
   const [wallets, setWallets] = useState([]);
@@ -30,9 +31,9 @@ export default function TransaksiPage() {
       params.set('limit', '100');
 
       const [txRes, catRes, walRes] = await Promise.all([
-        fetch(`/api/transactions?${params}`),
-        fetch('/api/categories'),
-        fetch('/api/wallets'),
+        authFetch(`/api/transactions?${params}`),
+        authFetch('/api/categories'),
+        authFetch('/api/wallets'),
       ]);
 
       const txData = await txRes.json();

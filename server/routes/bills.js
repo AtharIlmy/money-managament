@@ -125,4 +125,84 @@ router.delete('/:id', authenticate, async (req, res) => {
   }
 });
 
+// PUT edit bill
+router.put('/:id', authenticate, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { id } = req.params;
+    const { name, amount, due_day, category, icon, wallet_id } = req.body;
+
+    const result = await query(
+      `UPDATE bills
+       SET name = COALESCE($1, name),
+           amount = COALESCE($2, amount),
+           due_day = COALESCE($3, due_day),
+           category = COALESCE($4, category),
+           icon = COALESCE($5, icon),
+           wallet_id = COALESCE($6, wallet_id)
+       WHERE id = $7 AND user_id = $8
+       RETURNING *`,
+      [name !== undefined ? name : null,
+        amount !== undefined ? parseFloat(amount) : null,
+        due_day !== undefined ? parseInt(due_day) : null,
+        category !== undefined ? category : null,
+        icon !== undefined ? icon : null,
+        wallet_id !== undefined ? parseInt(wallet_id) : null,
+        id, userId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Tagihan tidak ditemukan' });
+    }
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Edit bill error:', error);
+    res.status(500).json({ error: 'Gagal memperbarui tagihan' });
+  }
+});
+
+// GET CSV export for bills report
+router.get('/export', authenticate, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { month, year } = req.query;
+    const targetYear = parseInt(year) || new Date().getFullYear();
+    const targetMonth = month ? parseInt(month) : new Date().getMonth() + 1;
+
+    // Fetch all transactions for the period
+    const txResult = await query(
+      `SELECT t.amount, t.type, t.description,
+              c.name as category_name, c.icon as category_icon, c.color as category_color,
+              w.name as wallet_name, w.icon as wallet_icon, t.date
+       FROM transactions t
+       LEFT JOIN categories c ON t.category_id = c.id
+       LEFT JOIN wallets w ON t.wallet_id = w.id
+       WHERE t.user_id = $1 AND EXTRACT(MONTH FROM t.date) = $2 AND EXTRACT(YEAR FROM t.date) = $3
+       ORDER BY t.date DESC`,
+      [userId, targetMonth, targetYear]
+    );
+
+    const rows = txResult.rows;
+    const header = ['Tanggal', 'Keterangan', 'Kategori', 'Gunakan Dompet', 'Jenis', 'Jumlah', 'Diskon'];
+    const csvRows = rows.map((r) => [
+      r.date,
+      r.description || '',
+      r.category_name || '',
+      r.wallet_name || '',
+      r.type || '',
+      parseFloat(r.amount || 0).toLocaleString('id-ID'),
+      parseFloat(r.tax_amount || 0).toLocaleString('id-ID'),
+    ]);
+    const csv = [header.join(','), ...csvRows.map(row => row.join(','))].join('\n');
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename=laporan_${targetYear}_${String(targetMonth).padStart(2,'0')}.csv`);
+    res.send(csv);
+  } catch (error) {
+    console.error('Export CSV error:', error);
+    res.status(500).json({ error: 'Gagal mengekspor CSV' });
+  }
+});
+
 export default router;
